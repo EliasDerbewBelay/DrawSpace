@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +8,47 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id          String        @id @default(uuid())
+  clerkId     String        @unique
+  name        String
+  email       String        @unique
+  avatarUrl   String?
+  createdAt   DateTime      @default(now())
+  boards      Board[]       @relation("BoardOwner")
+}
+
+model Board {
+  id        String        @id @default(uuid())
+  name      String
+  ownerId   String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  owner     User          @relation("BoardOwner", fields: [ownerId], references: [clerkId])
+  members   BoardMember[]
+  elements  Element[]
+}
+
+model BoardMember {
+  id       String   @id @default(uuid())
+  boardId  String
+  userId   String
+  role     String   @default("editor")
+  joinedAt DateTime @default(now())
+  board    Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+}
+
+model Element {
+  id        String   @id @default(uuid())
+  boardId   String
+  type      String
+  data      Json
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
 }
