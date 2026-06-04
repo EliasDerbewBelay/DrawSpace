@@ -10,7 +10,7 @@ import {
   Zap,
   Users,
   Layers,
-  Sparkles,
+  Wand2,
   MousePointer2,
   StickyNote,
   Shapes,
@@ -78,7 +78,7 @@ const FEATURES = [
     description: "No more running out of space. Pan, zoom, and organize freely across an unbounded canvas.",
   },
   {
-    icon: <Sparkles size={20} />,
+    icon: <Wand2 size={20} />,
     title: "Smart templates",
     description: "Jump-start your session with curated templates for retrospectives, roadmaps, wireframes, and more.",
   },

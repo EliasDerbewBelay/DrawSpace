@@ -8,9 +8,9 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 const navLinks = [
-  { label: "Features", href: "#features" },
-  { label: "Templates", href: "#templates" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Features", href: "/#features" },
+  { label: "Templates", href: "/#templates" },
+  { label: "Pricing", href: "/pricing" },
 ];
 
 export function Navbar() {
