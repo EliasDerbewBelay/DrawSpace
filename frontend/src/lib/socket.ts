@@ -1,24 +1,31 @@
-import { io, Socket } from 'socket.io-client'
-import type {
-  ClientToServerEvents,
-  ServerToClientEvents,
-} from '@/types/socket'
+import { io, type Socket } from 'socket.io-client'
+import type { ClientToServerEvents, ServerToClientEvents } from '@/types/socket'
 
-type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>
+export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
-const socket: AppSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
-  autoConnect: false,
-  withCredentials: true,
-  transports: ['websocket'],
-})
+let socket: AppSocket | null = null
 
-export function connectSocket(token: string): void {
-  socket.auth = { token }
-  socket.connect()
+export function getSocket(): AppSocket {
+  if (!socket) {
+    socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
+      autoConnect: false,
+      withCredentials: true,
+      transports: ['websocket'],
+    })
+  }
+  return socket
+}
+
+export async function connectSocket(getToken: () => Promise<string | null>): Promise<void> {
+  const sock = getSocket()
+  if (sock.connected) return
+  const token = await getToken()
+  if (!token) throw new Error('No auth token')
+  sock.auth = { token }
+  sock.connect()
 }
 
 export function disconnectSocket(): void {
-  socket.disconnect()
+  socket?.disconnect()
+  socket = null
 }
-
-export default socket

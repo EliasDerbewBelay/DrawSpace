@@ -23,6 +23,7 @@ export interface ClientToServerEvents {
 }
 
 export interface ServerToClientEvents {
+  'board:state': (elements: Record<string, unknown>[]) => void
   'draw:added': (payload: DrawPayload) => void
   'draw:updated': (payload: DrawPayload) => void
   'draw:deleted': (payload: { boardId: string; elementId: string }) => void

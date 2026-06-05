@@ -2,6 +2,8 @@
 
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
+import { useAuth } from "@clerk/nextjs";
+import Link from "next/link";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import {
@@ -102,6 +104,9 @@ const AVATARS = [
 ];
 
 export default function Home() {
+  const { isSignedIn } = useAuth();
+  const ctaHref = isSignedIn ? "/dashboard" : "/sign-up";
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -163,10 +168,12 @@ export default function Home() {
             animate="show"
             className="mt-8 flex flex-wrap items-center justify-center gap-3"
           >
-            <Button size="lg" className="gap-2 bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/25">
-              <Shapes size={16} />
-              Start a board
-              <ArrowRight size={14} />
+            <Button size="lg" asChild className="gap-2 bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/25">
+              <Link href={ctaHref}>
+                <Shapes size={16} />
+                {isSignedIn ? "Go to dashboard" : "Start for free"}
+                <ArrowRight size={14} />
+              </Link>
             </Button>
             <Button size="lg" variant="outline" className="gap-2">
               <Play size={14} className="fill-current" />
@@ -390,15 +397,14 @@ export default function Home() {
               Start your free workspace — no credit card required.
             </motion.p>
             <motion.div variants={fadeUp} custom={3} className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button
-                size="lg"
-                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/25"
-              >
-                Start for free
-                <ArrowRight size={14} />
+              <Button size="lg" asChild className="gap-2 bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/25">
+                <Link href={ctaHref}>
+                  {isSignedIn ? "Open dashboard" : "Start for free"}
+                  <ArrowRight size={14} />
+                </Link>
               </Button>
-              <Button size="lg" variant="outline">
-                View templates
+              <Button size="lg" variant="outline" asChild>
+                <a href="/pricing">See pricing</a>
               </Button>
             </motion.div>
           </motion.div>

@@ -4,21 +4,24 @@ import { useState } from "react";
 import { Minus, Plus, Undo2, Redo2, Download } from "lucide-react";
 import type Konva from "konva";
 import { useCanvasStore } from "@/store/canvasStore";
+import { getEmitters } from "@/hooks/useSync";
 
 interface BottomBarProps {
   stageRef: React.RefObject<Konva.Stage | null>;
 }
 
 const ZOOM_STEP = 25;
-const ZOOM_MIN = 25;
-const ZOOM_MAX = 200;
+const ZOOM_MIN  = 25;
+const ZOOM_MAX  = 200;
 
 export function BottomBar({ stageRef }: BottomBarProps) {
   const [zoom, setZoom] = useState(100);
-  const { undo, redo, history, historyIndex } = useCanvasStore();
+  const { history, historyIndex } = useCanvasStore();
 
   const canUndo = historyIndex >= 0;
   const canRedo = historyIndex < history.length - 1;
+
+  /* ── zoom ─────────────────────────────────────────────── */
 
   function applyZoom(value: number) {
     const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
@@ -31,33 +34,59 @@ export function BottomBar({ stageRef }: BottomBarProps) {
     setZoom(clamped);
   }
 
+  /* ── export ───────────────────────────────────────────── */
+
   function handleExport() {
     const stage = stageRef.current;
     if (!stage) return;
     const dataUrl = stage.toDataURL({ pixelRatio: 2 });
-    const anchor = document.createElement("a");
-    anchor.href = dataUrl;
+    const anchor  = document.createElement("a");
+    anchor.href     = dataUrl;
     anchor.download = "drawspace-board.png";
     anchor.click();
   }
 
-  const btnBase =
+  /* ── undo / redo with server sync ────────────────────── */
+
+  function handleUndo() {
+    const diff = useCanvasStore.getState().undo();
+    if (!diff) return;
+    const emitters = getEmitters();
+    if (!emitters) return;
+    diff.removed.forEach((el) => emitters.emitDelete(el.elementId));
+    diff.updated.forEach((el) => emitters.emitUpdate(el));
+    diff.added.forEach((el)   => emitters.emitDraw(el));
+  }
+
+  function handleRedo() {
+    const diff = useCanvasStore.getState().redo();
+    if (!diff) return;
+    const emitters = getEmitters();
+    if (!emitters) return;
+    diff.added.forEach((el)   => emitters.emitDraw(el));
+    diff.updated.forEach((el) => emitters.emitUpdate(el));
+    diff.removed.forEach((el) => emitters.emitDelete(el.elementId));
+  }
+
+  /* ── styles ───────────────────────────────────────────── */
+
+  const btn =
     "flex items-center justify-center w-7 h-7 rounded-md transition-colors text-white/50 hover:text-white hover:bg-white/8 disabled:opacity-30 disabled:cursor-not-allowed";
 
   return (
     <div
       className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-1.5 z-30"
       style={{
-        background: "rgba(22,25,32,0.92)",
+        background:     "rgba(22,25,32,0.92)",
         backdropFilter: "blur(8px)",
-        border: "0.5px solid rgba(255,255,255,0.1)",
-        borderRadius: 10,
+        border:         "0.5px solid rgba(255,255,255,0.1)",
+        borderRadius:   10,
       }}
     >
       {/* Zoom controls */}
       <div className="flex items-center gap-1">
         <button
-          className={btnBase}
+          className={btn}
           onClick={() => applyZoom(zoom - ZOOM_STEP)}
           disabled={zoom <= ZOOM_MIN}
           title="Zoom out"
@@ -68,7 +97,7 @@ export function BottomBar({ stageRef }: BottomBarProps) {
           {zoom}%
         </span>
         <button
-          className={btnBase}
+          className={btn}
           onClick={() => applyZoom(zoom + ZOOM_STEP)}
           disabled={zoom >= ZOOM_MAX}
           title="Zoom in"
@@ -82,18 +111,18 @@ export function BottomBar({ stageRef }: BottomBarProps) {
       {/* Undo / redo */}
       <div className="flex items-center gap-1">
         <button
-          className={btnBase}
-          onClick={undo}
+          className={btn}
+          onClick={handleUndo}
           disabled={!canUndo}
-          title="Undo"
+          title="Undo (Ctrl+Z / ⌘Z)"
         >
           <Undo2 size={14} />
         </button>
         <button
-          className={btnBase}
-          onClick={redo}
+          className={btn}
+          onClick={handleRedo}
           disabled={!canRedo}
-          title="Redo"
+          title="Redo (Ctrl+Shift+Z / ⌘⇧Z)"
         >
           <Redo2 size={14} />
         </button>
@@ -103,9 +132,9 @@ export function BottomBar({ stageRef }: BottomBarProps) {
 
       {/* Export */}
       <button
-        className={`${btnBase} gap-1.5 px-2 w-auto text-xs`}
+        className={`${btn} gap-1.5 px-2 w-auto text-xs`}
         onClick={handleExport}
-        title="Export PNG"
+        title="Export PNG (2×)"
       >
         <Download size={13} />
         Export

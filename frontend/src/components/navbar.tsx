@@ -1,8 +1,8 @@
 "use client";
 
-import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
+import { Show, UserButton } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
-import { Moon, Sun, PenLine } from "lucide-react";
+import { Moon, Sun, PenLine, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -60,19 +60,26 @@ export function Navbar() {
           </Button>
 
           <Show when="signed-out">
-            <SignInButton mode="modal">
+            <Link href="/sign-in">
               <Button variant="outline" size="sm" className="h-8 text-xs px-3">
                 Log in
               </Button>
-            </SignInButton>
-            <SignUpButton mode="modal">
+            </Link>
+            <Link href="/sign-up">
               <Button size="sm" className="h-8 text-xs px-3">
                 Get started
               </Button>
-            </SignUpButton>
+            </Link>
           </Show>
+
           <Show when="signed-in">
-            <UserButton />
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm" className="h-8 text-xs px-3 gap-1.5">
+                <LayoutDashboard size={13} />
+                Dashboard
+              </Button>
+            </Link>
+            <UserButton afterSignOutUrl="/" />
           </Show>
         </div>
       </div>

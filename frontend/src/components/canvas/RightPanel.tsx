@@ -24,33 +24,34 @@ const STROKE_SIZES = [
 export function RightPanel() {
   const {
     activeTool,
-    selectedId,
+    selectedIds,
     strokeColor,
     strokeWidth,
     setStrokeColor,
     setStrokeWidth,
     updateElement,
-    deleteElement,
+    deleteElements,
     elements,
   } = useCanvasStore();
 
-  const visible = activeTool === "select" && selectedId !== null;
+  const visible = activeTool === "select" && selectedIds.length > 0;
   if (!visible) return null;
 
-  const selectedEl = elements.find((e) => e.elementId === selectedId);
+  // For property display, use the first selected element
+  const selectedEl = elements.find((e) => e.elementId === selectedIds[0]);
 
   function applyColor(color: string) {
     setStrokeColor(color);
-    if (selectedId) updateElement(selectedId, { stroke: color });
+    selectedIds.forEach((id) => updateElement(id, { stroke: color }));
   }
 
   function applyStrokeWidth(w: number) {
     setStrokeWidth(w);
-    if (selectedId) updateElement(selectedId, { strokeWidth: w });
+    selectedIds.forEach((id) => updateElement(id, { strokeWidth: w }));
   }
 
   function applyOpacity(opacity: number) {
-    if (selectedId) updateElement(selectedId, { opacity });
+    selectedIds.forEach((id) => updateElement(id, { opacity }));
   }
 
   return (
@@ -124,7 +125,7 @@ export function RightPanel() {
           min={0}
           max={1}
           step={0.05}
-          defaultValue={selectedEl?.data.opacity ?? 1}
+          value={selectedEl?.data.opacity ?? 1}
           onChange={(e) => applyOpacity(parseFloat(e.target.value))}
           className="w-full accent-[#6C63FF]"
         />
@@ -136,13 +137,11 @@ export function RightPanel() {
       {/* Delete */}
       <section className="mt-auto">
         <button
-          onClick={() => {
-            if (selectedId) deleteElement(selectedId);
-          }}
+          onClick={() => deleteElements(selectedIds)}
           className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs text-red-400 hover:bg-red-500/10 transition-colors"
         >
           <Trash2 size={13} />
-          Delete element
+          {selectedIds.length > 1 ? `Delete ${selectedIds.length} elements` : "Delete element"}
         </button>
       </section>
     </div>
