@@ -156,6 +156,19 @@ export function useSync(boardId: string, userId: string): SyncState & SyncEmitte
         useCanvasStore.getState().deleteElementRemote(payload.elementId);
       });
 
+      /* cursors:state — initial cursor positions from Redis */
+      socket.on("cursors:state", (cursors) => {
+        for (const payload of cursors) {
+          if (payload.userId === userId) continue;
+          remoteCursorsRef.current.set(payload.userId, {
+            x: payload.x,
+            y: payload.y,
+            lastSeen: Date.now(),
+          });
+        }
+        forceUpdate((n) => n + 1);
+      });
+
       /* cursor:moved */
       socket.on("cursor:moved", (payload) => {
         if (payload.userId === userId) return;
@@ -165,6 +178,13 @@ export function useSync(boardId: string, userId: string): SyncState & SyncEmitte
           lastSeen: Date.now(),
         });
         forceUpdate((n) => n + 1);
+      });
+
+      /* cursor:left — user disconnected or left the board */
+      socket.on("cursor:left", (payload) => {
+        if (remoteCursorsRef.current.delete(payload.userId)) {
+          forceUpdate((n) => n + 1);
+        }
       });
 
       /* remove stale remote cursors (> 3s without update) */
@@ -208,7 +228,9 @@ export function useSync(boardId: string, userId: string): SyncState & SyncEmitte
       socket.off("draw:added");
       socket.off("draw:updated");
       socket.off("draw:deleted");
+      socket.off("cursors:state");
       socket.off("cursor:moved");
+      socket.off("cursor:left");
       socket.off("room:users");
       socket.off("error");
       window.removeEventListener("online",  handleOnline);

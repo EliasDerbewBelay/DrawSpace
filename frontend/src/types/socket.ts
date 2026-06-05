@@ -24,10 +24,12 @@ export interface ClientToServerEvents {
 
 export interface ServerToClientEvents {
   'board:state': (elements: Record<string, unknown>[]) => void
+  'cursors:state': (cursors: CursorPayload[]) => void
   'draw:added': (payload: DrawPayload) => void
   'draw:updated': (payload: DrawPayload) => void
   'draw:deleted': (payload: { boardId: string; elementId: string }) => void
   'cursor:moved': (payload: CursorPayload) => void
+  'cursor:left': (payload: { boardId: string; userId: string }) => void
   'room:users': (userIds: string[]) => void
   'error': (message: string) => void
 }

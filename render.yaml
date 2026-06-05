@@ -1,0 +1,34 @@
+# Render Blueprint — backend + PostgreSQL
+# Docs: https://render.com/docs/blueprint-spec
+
+databases:
+  - name: drawspace-db
+    plan: free
+    databaseName: drawspace
+    user: drawspace
+
+services:
+  - type: web
+    name: drawspace-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run db:migrate && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: drawspace-db
+          property: connectionString
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false

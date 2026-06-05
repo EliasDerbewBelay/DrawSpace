@@ -1,5 +1,13 @@
 import type { Server, Socket } from 'socket.io'
 import { prisma, type Prisma } from '../lib/prisma'
+import {
+  addBoardPresence,
+  clearBoardCursor,
+  getBoardCursors,
+  getBoardOnlineUsers,
+  removeBoardPresence,
+  setBoardCursor,
+} from '../lib/liveState'
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -35,9 +43,16 @@ function elementToStored(el: {
   }
 }
 
-async function roomUserIds(boardId: string): Promise<string[]> {
-  const members = await prisma.boardMember.findMany({ where: { boardId } })
-  return members.map((m) => m.userId)
+async function socketOnlineUsers(io: AppServer, boardId: string): Promise<string[]> {
+  const sockets = await io.in(boardId).fetchSockets()
+  return [...new Set(sockets.map((s) => s.data.userId))]
+}
+
+async function broadcastOnlineUsers(io: AppServer, boardId: string): Promise<void> {
+  const redisUsers = await getBoardOnlineUsers(boardId)
+  const userIds =
+    redisUsers.length > 0 ? redisUsers : await socketOnlineUsers(io, boardId)
+  io.to(boardId).emit('room:users', userIds)
 }
 
 export function registerHandlers(io: AppServer, socket: AppSocket, userId: string): void {
@@ -47,7 +62,8 @@ export function registerHandlers(io: AppServer, socket: AppSocket, userId: strin
       await socket.join(boardId)
       console.log(`${userId} joined board ${boardId}`)
 
-      // Always load live elements so reopening reflects the latest saved state
+      await addBoardPresence(boardId, userId)
+
       const elements = await prisma.element.findMany({
         where: { boardId },
         orderBy: { updatedAt: 'asc' },
@@ -57,9 +73,13 @@ export function registerHandlers(io: AppServer, socket: AppSocket, userId: strin
         elements.map((el) => elementToStored(el) as unknown as Record<string, unknown>)
       )
 
-      // Broadcast updated member list
-      const userIds = await roomUserIds(boardId)
-      io.to(boardId).emit('room:users', userIds)
+      const cursors = await getBoardCursors(boardId)
+      socket.emit(
+        'cursors:state',
+        cursors.filter((c) => c.userId !== userId)
+      )
+
+      await broadcastOnlineUsers(io, boardId)
     })()
   })
 
@@ -67,8 +87,12 @@ export function registerHandlers(io: AppServer, socket: AppSocket, userId: strin
   socket.on('board:leave', (boardId) => {
     void (async () => {
       await socket.leave(boardId)
-      const userIds = await roomUserIds(boardId)
-      io.to(boardId).emit('room:users', userIds)
+      const fullyLeft = await removeBoardPresence(boardId, userId)
+      if (fullyLeft) {
+        await clearBoardCursor(boardId, userId)
+        socket.to(boardId).emit('cursor:left', { boardId, userId })
+      }
+      await broadcastOnlineUsers(io, boardId)
     })()
   })
 
@@ -98,7 +122,6 @@ export function registerHandlers(io: AppServer, socket: AppSocket, userId: strin
 
         socket.to(payload.boardId).emit('draw:added', payload)
 
-        // Create a snapshot every 20 elements
         const count = await prisma.element.count({ where: { boardId: payload.boardId } })
         if (count > 0 && count % 20 === 0) {
           const allElements = await prisma.element.findMany({ where: { boardId: payload.boardId } })
@@ -120,7 +143,6 @@ export function registerHandlers(io: AppServer, socket: AppSocket, userId: strin
   socket.on('draw:update', (payload: DrawPayload) => {
     void (async () => {
       try {
-        // Upsert so an element that was never persisted gets created here
         await prisma.element.upsert({
           where: { id: payload.elementId },
           create: {
@@ -147,7 +169,6 @@ export function registerHandlers(io: AppServer, socket: AppSocket, userId: strin
   socket.on('draw:delete', (payload) => {
     void (async () => {
       try {
-        // deleteMany never throws when the record doesn't exist (unlike delete)
         await prisma.element.deleteMany({ where: { id: payload.elementId } })
         socket.to(payload.boardId).emit('draw:deleted', payload)
       } catch (err) {
@@ -159,7 +180,10 @@ export function registerHandlers(io: AppServer, socket: AppSocket, userId: strin
 
   /* ─── cursor:move ─────────────────────────────────────────── */
   socket.on('cursor:move', (payload: CursorPayload) => {
-    socket.to(payload.boardId).emit('cursor:moved', payload)
+    void (async () => {
+      await setBoardCursor(payload.boardId, payload.userId, payload.x, payload.y)
+      socket.to(payload.boardId).emit('cursor:moved', payload)
+    })()
   })
 
   /* ─── disconnect ──────────────────────────────────────────── */
@@ -169,10 +193,14 @@ export function registerHandlers(io: AppServer, socket: AppSocket, userId: strin
     for (const boardId of rooms) {
       void (async () => {
         try {
-          const userIds = await roomUserIds(boardId)
-          io.to(boardId).emit('room:users', userIds)
+          const fullyLeft = await removeBoardPresence(boardId, userId)
+          if (fullyLeft) {
+            await clearBoardCursor(boardId, userId)
+            io.to(boardId).emit('cursor:left', { boardId, userId })
+          }
+          await broadcastOnlineUsers(io, boardId)
         } catch {
-          // ignore — board may already be cleaned up
+          /* board may already be cleaned up */
         }
       })()
     }

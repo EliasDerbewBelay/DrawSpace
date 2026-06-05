@@ -2,6 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import http from 'http'
 import { Server } from 'socket.io'
+import { createAdapter } from '@socket.io/redis-adapter'
 import cors from 'cors'
 import { verifyToken } from '@clerk/backend'
 import apiRouter from './routes/index'
@@ -11,16 +12,16 @@ import type {
   SocketData,
 } from './types/socket'
 import { registerHandlers } from './socket/handlers'
+import { connectRedis, disconnectRedis, isRedisReady, redisClients } from './lib/redis'
+import { prisma } from './lib/prisma'
+import { assertRequiredEnv, getAllowedOrigins } from './lib/env'
+
+assertRequiredEnv()
 
 const app = express()
+const allowedOrigins = getAllowedOrigins()
 
-const allowedOrigins = new Set(
-  [
-    process.env.CLIENT_URL,
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-  ].filter((url): url is string => Boolean(url))
-)
+app.set('trust proxy', 1)
 
 app.use(
   cors({
@@ -75,8 +76,32 @@ io.on('connection', (socket) => {
   registerHandlers(io, socket, userId)
 })
 
-const PORT = process.env.PORT ?? 4000
+const PORT = Number(process.env.PORT ?? 4000)
+const HOST = process.env.HOST ?? '0.0.0.0'
 
-server.listen(PORT, () => {
-  console.log(`DrawSpace backend running on port ${PORT}`)
-})
+async function start(): Promise<void> {
+  const redisConnected = await connectRedis()
+  if (redisConnected) {
+    io.adapter(createAdapter(redisClients.pub, redisClients.sub))
+  }
+
+  server.listen(PORT, HOST, () => {
+    console.log(`DrawSpace backend running on ${HOST}:${PORT}`)
+    console.log(`CORS origins: ${[...allowedOrigins].join(', ')}`)
+    if (isRedisReady()) {
+      console.log('Socket.io using Redis adapter for live state')
+    }
+  })
+}
+
+void start()
+
+async function shutdown(): Promise<void> {
+  await new Promise<void>((resolve) => server.close(() => resolve()))
+  await disconnectRedis()
+  await prisma.$disconnect()
+  process.exit(0)
+}
+
+process.on('SIGINT', () => { void shutdown() })
+process.on('SIGTERM', () => { void shutdown() })
