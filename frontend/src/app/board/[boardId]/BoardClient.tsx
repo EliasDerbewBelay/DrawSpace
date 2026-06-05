@@ -3,17 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import dynamic from "next/dynamic";
+import type Konva from "konva";
 import { ArrowLeft, Copy, Check, Users } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { updateBoard } from "@/lib/api";
 import socket, { connectSocket, disconnectSocket } from "@/lib/socket";
-import type { Board } from "@/types/board";
+import type { Board, BoardMember } from "@/types/board";
+import { Toolbar } from "@/components/canvas/Toolbar";
+import { RightPanel } from "@/components/canvas/RightPanel";
+import { BottomBar } from "@/components/canvas/BottomBar";
 
-interface Props {
-  board: Board;
-  userId: string;
-}
+const WhiteboardCanvas = dynamic(
+  () => import("@/components/canvas/WhiteboardCanvas"),
+  { ssr: false }
+);
+
+/* ─── helpers ─────────────────────────────────────────────── */
 
 function initials(userId: string): string {
   const stripped = userId.replace(/^user_/, "");
@@ -36,6 +42,15 @@ function colorFor(userId: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
+/* ─── component ───────────────────────────────────────────── */
+
+interface Props {
+  board: Board & { members: BoardMember[] };
+  userId: string;
+}
+
+const MAX_AVATARS = 4;
+
 export default function BoardClient({ board: initialBoard, userId }: Props) {
   const router = useRouter();
   const { getToken } = useAuth();
@@ -43,17 +58,17 @@ export default function BoardClient({ board: initialBoard, userId }: Props) {
   const [boardName, setBoardName] = useState(initialBoard.name);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(initialBoard.name);
-  const [onlineSocketIds, setOnlineSocketIds] = useState<string[]>([]);
+  const [onlineCount, setOnlineCount] = useState(0);
   const [copied, setCopied] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
 
   const allMembers = initialBoard.members;
-  const MAX_AVATARS = 4;
   const visibleMembers = allMembers.slice(0, MAX_AVATARS);
   const extraCount = Math.max(0, allMembers.length - MAX_AVATARS);
 
-  // Connect socket on mount
+  /* socket lifecycle */
   useEffect(() => {
     let active = true;
     async function connect() {
@@ -65,7 +80,7 @@ export default function BoardClient({ board: initialBoard, userId }: Props) {
     void connect();
 
     socket.on("room:users", (socketIds) => {
-      setOnlineSocketIds(socketIds);
+      setOnlineCount(socketIds.length);
     });
 
     return () => {
@@ -76,6 +91,7 @@ export default function BoardClient({ board: initialBoard, userId }: Props) {
     };
   }, [getToken, initialBoard.id]);
 
+  /* focus name input when editing */
   useEffect(() => {
     if (editingName) nameInputRef.current?.focus();
   }, [editingName]);
@@ -108,17 +124,20 @@ export default function BoardClient({ board: initialBoard, userId }: Props) {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#0F1117]">
-      {/* ─ topbar ─ */}
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/8 bg-[#0F1117] px-4">
-        {/* left: back + name */}
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard"
+      {/* ─── topbar ─── */}
+      <header
+        className="flex h-14 shrink-0 items-center justify-between border-b px-4 z-10"
+        style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0F1117" }}
+      >
+        {/* left */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push("/dashboard")}
             className="flex h-7 w-7 items-center justify-center rounded-lg text-white/50 hover:bg-white/8 hover:text-white transition-colors"
             aria-label="Back to dashboard"
           >
             <ArrowLeft size={15} />
-          </Link>
+          </button>
 
           {editingName ? (
             <input
@@ -137,7 +156,10 @@ export default function BoardClient({ board: initialBoard, userId }: Props) {
             />
           ) : (
             <button
-              onClick={() => { setEditingName(true); setNameInput(boardName); }}
+              onClick={() => {
+                setEditingName(true);
+                setNameInput(boardName);
+              }}
               className="rounded px-1.5 py-0.5 text-sm font-medium text-white hover:bg-white/8 transition-colors"
             >
               {boardName}
@@ -145,17 +167,15 @@ export default function BoardClient({ board: initialBoard, userId }: Props) {
           )}
         </div>
 
-        {/* right: online avatars + share */}
+        {/* right */}
         <div className="flex items-center gap-3">
-          {/* online count badge */}
-          {onlineSocketIds.length > 0 && (
+          {onlineCount > 0 && (
             <div className="flex items-center gap-1 text-xs text-white/40">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              {onlineSocketIds.length}
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {onlineCount} online
             </div>
           )}
 
-          {/* member avatars */}
           <div className="flex items-center -space-x-1.5">
             {visibleMembers.map((member) => (
               <div
@@ -178,25 +198,39 @@ export default function BoardClient({ board: initialBoard, userId }: Props) {
             )}
           </div>
 
-          {/* share */}
           <Button
             size="sm"
             variant="ghost"
             onClick={handleShare}
             className="h-7 gap-1.5 text-xs text-white/60 hover:bg-white/8 hover:text-white"
           >
-            {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+            {copied ? (
+              <Check size={12} className="text-emerald-400" />
+            ) : (
+              <Copy size={12} />
+            )}
             {copied ? "Copied!" : "Share"}
           </Button>
         </div>
       </header>
 
-      {/* ─ canvas placeholder ─ */}
-      <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-white/30 select-none">
-          Canvas initialises in Phase 3
-        </p>
-      </main>
+      {/* ─── main canvas area ─── */}
+      <div className="flex flex-1 overflow-hidden">
+        <Toolbar />
+
+        {/* canvas occupies remaining space after 44px toolbar (positioned fixed) */}
+        <div className="flex-1 overflow-hidden" style={{ marginLeft: 44 }}>
+          <WhiteboardCanvas
+            boardId={initialBoard.id}
+            userId={userId}
+            stageRef={stageRef}
+          />
+        </div>
+
+        <RightPanel />
+      </div>
+
+      <BottomBar stageRef={stageRef} />
     </div>
   );
 }
