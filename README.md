@@ -2,36 +2,48 @@
 
 Real-time collaborative whiteboard (Next.js + Express + PostgreSQL + Redis).
 
-## Deploy backend + Postgres on Render
+## Database — Supabase PostgreSQL
 
-### Option A — Blueprint (recommended)
+1. Create a project at [supabase.com](https://supabase.com).
+2. **Project Settings → Database → Connection string → URI**
+3. Use the **Direct** connection (`db.PROJECT_REF.supabase.co:5432`) or **Session pooler** (port 5432).
+4. Do **not** use the **Transaction** pooler (port 6543) for `DATABASE_URL` — migrations need a direct/session connection.
+5. If your password has special characters (`@`, `#`, `%`), [URL-encode](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding) them.
+6. Put the URI in `backend/.env` as `DATABASE_URL`.
+7. Apply schema: `cd backend && npm run db:migrate`
+
+SSL is applied automatically for `supabase.co` hosts.
+
+**Connection fails?** Common fixes:
+
+1. **Unpause** the Supabase project (free tier pauses after inactivity).
+2. **IPv6 issue** — `db.*.supabase.co` is often IPv6-only. On Windows or IPv4-only networks, use the **Session pooler** URI from Supabase (host `*.pooler.supabase.com`, port `5432`, user `postgres.PROJECT_REF`).
+3. **Password encoding** — encode `@`, `#`, `%` in the password (e.g. `@` → `%40`).
+4. For pooler + direct split, set `DIRECT_URL` for migrations and `DATABASE_URL` for the running app (see `backend/.env.example`).
+
+## Deploy backend on Render
+
+### Option A — Blueprint
 
 1. Push this repo to GitHub.
-2. In [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → connect the repo.
-3. Render reads `render.yaml` and creates:
-   - **drawspace-db** (PostgreSQL)
-   - **drawspace-api** (Node web service)
-4. Set these **manual** env vars on the web service:
-   - `CLERK_SECRET_KEY` — from Clerk dashboard
-   - `CLIENT_URL` — your deployed frontend URL (e.g. `https://your-app.vercel.app`)
+2. Render → **New** → **Blueprint** → connect the repo.
+3. Set **manual** env vars on **drawspace-api**:
+   - `DATABASE_URL` — Supabase connection URI
+   - `CLERK_SECRET_KEY` — Clerk dashboard
+   - `CLIENT_URL` — frontend URL (e.g. `https://your-app.vercel.app`)
    - `REDIS_URL` — Upstash `rediss://...` URL
-5. Deploy. Migrations run automatically on start (`prisma migrate deploy`).
-6. Verify: `https://your-api.onrender.com/api/health` → `{ "ok": true, "db": true, "redis": true }`
+4. Deploy. Migrations run on start (`prisma migrate deploy`).
+5. Verify: `https://your-api.onrender.com/api/health` → `{ "ok": true, "db": true, "redis": true }`
 
-### Option B — Manual
+### Option B — Manual web service
 
-1. Create **PostgreSQL** on Render → copy **Internal Database URL**.
-2. Create **Web Service** → root directory `backend`:
-   - **Build:** `npm install && npm run build`
-   - **Start:** `npm run db:migrate && npm start`
-   - **Health check path:** `/api/health`
-3. Add env vars (see `backend/.env.example`).
+Root directory `backend`, build `npm install && npm run build`, start `npm run db:migrate && npm start`, health `/api/health`.
 
-### Render env vars
+### Env vars
 
 | Variable | Required | Notes |
 |----------|----------|-------|
-| `DATABASE_URL` | Yes | Auto-linked from Render Postgres |
+| `DATABASE_URL` | Yes | Supabase PostgreSQL URI |
 | `CLERK_SECRET_KEY` | Yes | Clerk secret key |
 | `CLIENT_URL` | Yes | Frontend origin for CORS (no trailing slash) |
 | `REDIS_URL` | Recommended | Upstash TLS URL (`rediss://...`) |

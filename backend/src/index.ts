@@ -15,6 +15,7 @@ import { registerHandlers } from './socket/handlers'
 import { connectRedis, disconnectRedis, isRedisReady, redisClients } from './lib/redis'
 import { prisma } from './lib/prisma'
 import { assertRequiredEnv, getAllowedOrigins } from './lib/env'
+import { logDatabaseConnectionHints } from './lib/database'
 
 assertRequiredEnv()
 
@@ -80,6 +81,21 @@ const PORT = Number(process.env.PORT ?? 4000)
 const HOST = process.env.HOST ?? '0.0.0.0'
 
 async function start(): Promise<void> {
+  if (process.env.DATABASE_URL) {
+    logDatabaseConnectionHints(process.env.DATABASE_URL)
+  }
+
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    console.log('PostgreSQL connected')
+  } catch (err) {
+    console.error('PostgreSQL connection failed:', err)
+    console.error(
+      'Check DATABASE_URL (Supabase: project unpaused, password URL-encoded, SSL host correct)'
+    )
+    process.exit(1)
+  }
+
   const redisConnected = await connectRedis()
   if (redisConnected) {
     io.adapter(createAdapter(redisClients.pub, redisClients.sub))

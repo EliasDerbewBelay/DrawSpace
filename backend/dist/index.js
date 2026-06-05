@@ -15,6 +15,7 @@ const handlers_1 = require("./socket/handlers");
 const redis_1 = require("./lib/redis");
 const prisma_1 = require("./lib/prisma");
 const env_1 = require("./lib/env");
+const database_1 = require("./lib/database");
 (0, env_1.assertRequiredEnv)();
 const app = (0, express_1.default)();
 const allowedOrigins = (0, env_1.getAllowedOrigins)();
@@ -64,6 +65,18 @@ io.on('connection', (socket) => {
 const PORT = Number(process.env.PORT ?? 4000);
 const HOST = process.env.HOST ?? '0.0.0.0';
 async function start() {
+    if (process.env.DATABASE_URL) {
+        (0, database_1.logDatabaseConnectionHints)(process.env.DATABASE_URL);
+    }
+    try {
+        await prisma_1.prisma.$queryRaw `SELECT 1`;
+        console.log('PostgreSQL connected');
+    }
+    catch (err) {
+        console.error('PostgreSQL connection failed:', err);
+        console.error('Check DATABASE_URL (Supabase: project unpaused, password URL-encoded, SSL host correct)');
+        process.exit(1);
+    }
     const redisConnected = await (0, redis_1.connectRedis)();
     if (redisConnected) {
         io.adapter((0, redis_adapter_1.createAdapter)(redis_1.redisClients.pub, redis_1.redisClients.sub));
