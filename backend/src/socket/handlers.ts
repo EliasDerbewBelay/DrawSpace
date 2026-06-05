@@ -47,21 +47,15 @@ export function registerHandlers(io: AppServer, socket: AppSocket, userId: strin
       await socket.join(boardId)
       console.log(`${userId} joined board ${boardId}`)
 
-      // Send board state — prefer latest snapshot, fall back to live elements
-      const snap = await prisma.boardSnapshot.findFirst({
+      // Always load live elements so reopening reflects the latest saved state
+      const elements = await prisma.element.findMany({
         where: { boardId },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { updatedAt: 'asc' },
       })
-
-      if (snap) {
-        socket.emit('board:state', snap.elementsJson as Record<string, unknown>[])
-      } else {
-        const elements = await prisma.element.findMany({ where: { boardId } })
-        socket.emit(
-          'board:state',
-          elements.map((el) => elementToStored(el) as unknown as Record<string, unknown>)
-        )
-      }
+      socket.emit(
+        'board:state',
+        elements.map((el) => elementToStored(el) as unknown as Record<string, unknown>)
+      )
 
       // Broadcast updated member list
       const userIds = await roomUserIds(boardId)

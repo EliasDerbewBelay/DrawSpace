@@ -8,6 +8,11 @@ import {
   useMemo,
   type RefObject,
 } from "react";
+import {
+  Bold, Italic, Underline,
+  AlignLeft, AlignCenter, AlignRight,
+  Minus, Plus,
+} from "lucide-react";
 import Konva from "konva";
 import {
   Stage,
@@ -21,8 +26,10 @@ import {
   Transformer,
   Shape,
 } from "react-konva";
+import { cn } from "@/lib/utils";
 import { useCanvasStore } from "@/store/canvasStore";
 import type { CanvasElement, KonvaData, ToolType } from "@/types/canvas";
+import { useTheme } from "next-themes";
 import { useSync } from "@/hooks/useSync";
 import { useUndoRedo } from "@/hooks/useUndoRedo";
 
@@ -45,14 +52,40 @@ interface TextEditor {
 }
 
 interface StickyEditState {
-  id:       string;
-  x:        number;
-  y:        number;
-  width:    number;
-  height:   number;
-  text:     string;
-  fontSize: number;
-  color:    string;
+  id:        string;
+  x:         number;
+  y:         number;
+  width:     number;
+  height:    number;
+  text:      string;
+  fontSize:  number;
+  color:     string;
+  bold:      boolean;
+  italic:    boolean;
+  underline: boolean;
+  align:     "left" | "center" | "right";
+}
+
+const STICKY_FONT_SIZES = [11, 13, 16, 20] as const;
+
+function adjustStickyFontSize(size: number, dir: -1 | 1): number {
+  const sorted = [...STICKY_FONT_SIZES].sort((a, b) => a - b);
+  if (dir === 1) {
+    return sorted.find((s) => s > size) ?? sorted[sorted.length - 1];
+  }
+  return [...sorted].reverse().find((s) => s < size) ?? sorted[0];
+}
+
+function toKonvaFontStyle(bold: boolean, italic: boolean): string {
+  if (bold && italic) return "bold italic";
+  if (bold) return "bold";
+  if (italic) return "italic";
+  return "normal";
+}
+
+function parseKonvaFontStyle(fontStyle?: string) {
+  const s = fontStyle ?? "normal";
+  return { bold: s.includes("bold"), italic: s.includes("italic") };
 }
 
 const STICKY_COLORS = ["#FAC775", "#97C459", "#3ECFCF", "#F0997B", "#D4537E", "#A09AFF", "#F1F0E8"];
@@ -115,6 +148,9 @@ function isBackgroundTarget(target: Konva.Node): boolean {
 /* ─── component ──────────────────────────────────────────── */
 
 export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextMenu }: Props) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
+
   const { emitDraw, emitUpdate, emitDelete, emitCursor, remoteCursors } =
     useSync(boardId, userId);
 
@@ -135,6 +171,7 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
     deleteElement,
     deleteElements,
     showGrid,
+    canvasBackground,
     setTool,
     setStageScale,
   } = useCanvasStore();
@@ -154,8 +191,15 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
   const transformerRef      = useRef<Konva.Transformer | null>(null);
   const lastPlacedAt        = useRef<number>(0);
   const textEditorOpenedAt  = useRef<number>(0);
-  const stickyTextareaRef   = useRef<HTMLTextAreaElement | null>(null);
+  const stickyEditorRef     = useRef<HTMLDivElement | null>(null);
+  const stickyPanelRef      = useRef<HTMLDivElement | null>(null);
   const erasedStrokeRef     = useRef<Set<string>>(new Set());
+  const groupDragRef        = useRef<{
+    anchorId: string;
+    startX: number;
+    startY: number;
+    positions: Map<string, { x: number; y: number }>;
+  } | null>(null);
 
   /* stage dimensions */
   const [dims, setDims] = useState({ width: 0, height: 0 });
@@ -254,7 +298,7 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
       <Shape
         sceneFunc={(ctx) => {
           const raw = (ctx as unknown as { _context: CanvasRenderingContext2D })._context;
-          raw.fillStyle = "rgba(255,255,255,0.08)";
+          raw.fillStyle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
           for (let gx = 0; gx < dims.width; gx += 24) {
             for (let gy = 0; gy < dims.height; gy += 24) {
               raw.beginPath();
@@ -266,7 +310,7 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
         listening={false}
       />
     );
-  }, [dims, showGrid]);
+  }, [dims, showGrid, isDark]);
 
   /* ─── stage event handlers ────────────────────────────────── */
 
@@ -630,33 +674,78 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
     const absPos = node.getAbsolutePosition();
     const containerRect = stage.container().getBoundingClientRect();
     const scale = stage.scaleX();
+    const { bold, italic } = parseKonvaFontStyle(el.data.fontStyle);
     setStickyEdit({
-      id:       el.elementId,
-      x:        containerRect.left + absPos.x * scale,
-      y:        containerRect.top  + absPos.y * scale,
-      width:    Math.max(160, (el.data.width  ?? 200) * scale),
-      height:   Math.max(100, (el.data.height ?? 160) * scale),
-      text:     el.data.text  ?? "",
-      fontSize: el.data.fontSize ?? 14,
-      color:    el.data.fill  ?? "#FAC775",
+      id:        el.elementId,
+      x:         containerRect.left + absPos.x * scale,
+      y:         containerRect.top  + absPos.y * scale,
+      width:     Math.max(160, (el.data.width  ?? 200) * scale),
+      height:    Math.max(100, (el.data.height ?? 160) * scale),
+      text:      el.data.text ?? "",
+      fontSize:  el.data.fontSize ?? 14,
+      color:     el.data.fill ?? "#FAC775",
+      bold,
+      italic,
+      underline: el.data.textDecoration === "underline",
+      align:     el.data.align ?? "left",
     });
   }
 
-  function commitStickyEdit(value: string) {
+  function commitStickyEdit() {
     if (!stickyEdit) return;
     const id   = stickyEdit.id;
-    const text = value.trim() || "New note";
+    const text = (stickyEditorRef.current?.innerText ?? stickyEdit.text).trim() || "New note";
     const el   = elements.find((e) => e.elementId === id);
     if (el) {
-      const delta: Partial<KonvaData> = { text };
+      const delta: Partial<KonvaData> = {
+        text,
+        fontSize: stickyEdit.fontSize,
+        fontStyle: toKonvaFontStyle(stickyEdit.bold, stickyEdit.italic),
+        textDecoration: stickyEdit.underline ? "underline" : undefined,
+        align: stickyEdit.align,
+      };
       updateElement(id, delta);
       emitUpdate(mergeData(el, delta));
     }
     setStickyEdit(null);
-    /* switch to select so the user can immediately drag the note */
     setTool("select");
     setSelectedId(id);
   }
+
+  function patchStickyFormat(patch: Partial<Pick<StickyEditState, "bold" | "italic" | "underline" | "align" | "fontSize">>) {
+    setStickyEdit((prev) => (prev ? { ...prev, ...patch } : null));
+  }
+
+  /* focus sticky editor when it opens */
+  useEffect(() => {
+    if (!stickyEdit) return;
+    const node = stickyEditorRef.current;
+    if (!node) return;
+    node.textContent = stickyEdit.text;
+    node.focus();
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    range.collapse(false);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }, [stickyEdit?.id]);
+
+  /* save when clicking outside the sticky editor */
+  useEffect(() => {
+    if (!stickyEdit) return;
+    function onPointerDown(e: PointerEvent) {
+      const panel = stickyPanelRef.current;
+      if (panel && !panel.contains(e.target as Node)) commitStickyEdit();
+    }
+    const timer = window.setTimeout(() => {
+      document.addEventListener("pointerdown", onPointerDown);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [stickyEdit]);
 
   function changeStickyColor(color: string) {
     if (!stickyEdit) return;
@@ -696,6 +785,76 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
     emitUpdate(mergeData(el, delta));
   }
 
+  function canDragInSelect() {
+    return activeTool === "select" && !spaceHeld;
+  }
+
+  function handleDragStart(el: CanvasElement, e: Konva.KonvaEventObject<DragEvent>) {
+    e.cancelBubble = true;
+    const elId = el.elementId;
+
+    if (!selectedIds.includes(elId)) {
+      setSelectedId(elId);
+      return;
+    }
+
+    if (selectedIds.length <= 1) return;
+
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const positions = new Map<string, { x: number; y: number }>();
+    for (const id of selectedIds) {
+      const node = stage.findOne(`#${id}`);
+      if (node) positions.set(id, { x: node.x(), y: node.y() });
+    }
+
+    groupDragRef.current = {
+      anchorId: elId,
+      startX: e.target.x(),
+      startY: e.target.y(),
+      positions,
+    };
+  }
+
+  function handleDragMove(el: CanvasElement, e: Konva.KonvaEventObject<DragEvent>) {
+    const gd = groupDragRef.current;
+    if (!gd || gd.anchorId !== el.elementId || selectedIds.length <= 1) return;
+
+    const dx = e.target.x() - gd.startX;
+    const dy = e.target.y() - gd.startY;
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    for (const [id, pos] of gd.positions) {
+      if (id === el.elementId) continue;
+      const node = stage.findOne(`#${id}`);
+      if (node) node.position({ x: pos.x + dx, y: pos.y + dy });
+    }
+    stage.batchDraw();
+  }
+
+  function handleDragEnd(el: CanvasElement, e: Konva.KonvaEventObject<DragEvent>) {
+    const gd = groupDragRef.current;
+
+    if (gd && gd.anchorId === el.elementId && selectedIds.length > 1) {
+      const dx = e.target.x() - gd.startX;
+      const dy = e.target.y() - gd.startY;
+      for (const [id, pos] of gd.positions) {
+        const target = elements.find((item) => item.elementId === id);
+        if (!target) continue;
+        const delta: Partial<KonvaData> = { x: pos.x + dx, y: pos.y + dy };
+        updateElement(id, delta);
+        emitUpdate(mergeData(target, delta));
+      }
+      groupDragRef.current = null;
+      return;
+    }
+
+    groupDragRef.current = null;
+    syncNodePosition(el, e.target);
+  }
+
   function makeSharedHandlers(el: CanvasElement) {
     const baseOpacity = el.data.opacity ?? 1;
 
@@ -708,7 +867,10 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
 
     return {
       id: el.elementId,
-      draggable: false,
+      draggable: canDragInSelect(),
+      onDragStart: (e: Konva.KonvaEventObject<DragEvent>) => handleDragStart(el, e),
+      onDragMove: (e: Konva.KonvaEventObject<DragEvent>) => handleDragMove(el, e),
+      onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => handleDragEnd(el, e),
       onMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => {
         if (activeTool === "eraser") {
           e.cancelBubble = true;
@@ -842,9 +1004,7 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
         );
       }
 
-      case "text": {
-        const canDrag =
-          activeTool === "select" && !spaceHeld && selectedIds.length <= 1;
+      case "text":
         return (
           <Text key={el.elementId} {...shared}
             x={el.data.x ?? 0} y={el.data.y ?? 0}
@@ -854,12 +1014,6 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
             fill={el.data.fill ?? "#ffffff"}
             rotation={el.data.rotation ?? 0} opacity={opacity}
             hitStrokeWidth={12}
-            draggable={canDrag}
-            onDragStart={(e) => {
-              e.cancelBubble = true;
-              if (!selectedIds.includes(el.elementId)) setSelectedId(el.elementId);
-            }}
-            onDragEnd={(e) => syncNodePosition(el, e.target)}
             onTransformEnd={(e) => {
               const node = e.target as Konva.Text;
               const sx = node.scaleX();
@@ -882,7 +1036,6 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
             onDblClick={() => openTextEditor(el)}
           />
         );
-      }
 
       case "sticky": {
         const sw = el.data.width  ?? 200;
@@ -891,7 +1044,10 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
         return (
           <Group key={el.elementId} id={el.elementId}
             x={el.data.x ?? 0} y={el.data.y ?? 0}
-            draggable={false} opacity={opacity}
+            draggable={canDragInSelect()} opacity={opacity}
+            onDragStart={(e) => handleDragStart(el, e)}
+            onDragMove={(e) => handleDragMove(el, e)}
+            onDragEnd={(e) => handleDragEnd(el, e)}
             onMouseDown={(e: Konva.KonvaEventObject<MouseEvent>) => {
               if (activeTool === "eraser") {
                 e.cancelBubble = true;
@@ -957,7 +1113,9 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
               text={noteText || "Double-click to edit…"}
               fontSize={el.data.fontSize ?? 14}
               fill={noteText ? "#1a1a1a" : "rgba(0,0,0,0.35)"}
-              fontStyle={noteText ? "normal" : "italic"}
+              fontStyle={noteText ? (el.data.fontStyle ?? "normal") : "italic"}
+              textDecoration={noteText ? el.data.textDecoration : undefined}
+              align={el.data.align ?? "left"}
               padding={10}
               width={sw}
               height={sh - 28}
@@ -1111,17 +1269,23 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
   const showHint = elements.length === 0 && activeTool === "pen";
 
   return (
-    <div className="relative flex-1 overflow-hidden" style={{ background: "#0F1117" }}>
+    <div
+      className={cn(
+        "relative flex-1 overflow-hidden",
+        !canvasBackground && "bg-canvas"
+      )}
+      style={canvasBackground ? { backgroundColor: canvasBackground } : undefined}
+    >
       {showHint && (
         <div
-          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3"
+          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground/40"
           aria-hidden
         >
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
             <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>
           </svg>
-          <p className="text-[16px]" style={{ color: "rgba(255,255,255,0.15)" }}>Start drawing</p>
-          <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.10)" }}>Click and drag to draw a stroke</p>
+          <p className="text-[16px]">Start drawing</p>
+          <p className="text-[13px] opacity-70">Click and drag to draw a stroke</p>
         </div>
       )}
       <Stage
@@ -1168,16 +1332,13 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
         <textarea
           key={textEditor.id}
           autoFocus
+          className="fixed z-50 resize-none rounded border-2 border-primary bg-popover px-1.5 py-1 text-foreground outline-none shadow-lg"
           style={{
-            position: "fixed",
             left: textEditor.x, top: textEditor.y,
             minWidth: Math.max(120, textEditor.width),
             fontSize: textEditor.fontSize,
-            background: "rgba(22,25,32,0.95)",
             color: strokeColor,
-            border: "1.5px solid #6C63FF", borderRadius: 4,
-            padding: "4px 6px", outline: "none", resize: "none",
-            zIndex: 50, lineHeight: 1.4, fontFamily: "inherit",
+            lineHeight: 1.4, fontFamily: "inherit",
           }}
           defaultValue={textEditor.text}
           rows={3}
@@ -1204,8 +1365,18 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
       )}
 
       {/* ── sticky note editor overlay ── */}
+      <style>{`
+        .sticky-editor-body:empty::before {
+          content: attr(data-placeholder);
+          color: rgba(0,0,0,0.35);
+          font-style: italic;
+          pointer-events: none;
+        }
+      `}</style>
+
       {stickyEdit && (
         <div
+          ref={stickyPanelRef}
           className="fixed z-50 flex flex-col overflow-hidden"
           style={{
             left:      stickyEdit.x,
@@ -1247,7 +1418,7 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
             <button
               onMouseDown={(e) => {
                 e.preventDefault();
-                commitStickyEdit(stickyTextareaRef.current?.value ?? stickyEdit.text);
+                commitStickyEdit();
               }}
               className="flex items-center gap-1 rounded px-2 text-[11px] font-semibold transition-colors"
               style={{
@@ -1262,32 +1433,127 @@ export default function WhiteboardCanvas({ boardId, userId, stageRef, onContextM
             </button>
           </div>
 
-          {/* editable textarea */}
-          <textarea
+          {/* formatting toolbar */}
+          <div
+            className="flex items-center gap-0.5 px-2 flex-shrink-0 flex-wrap"
+            style={{ background: "rgba(0,0,0,0.06)", minHeight: 30, paddingTop: 4, paddingBottom: 4 }}
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            {([
+              { key: "bold", icon: <Bold size={13} />, active: stickyEdit.bold, toggle: () => patchStickyFormat({ bold: !stickyEdit.bold }) },
+              { key: "italic", icon: <Italic size={13} />, active: stickyEdit.italic, toggle: () => patchStickyFormat({ italic: !stickyEdit.italic }) },
+              { key: "underline", icon: <Underline size={13} />, active: stickyEdit.underline, toggle: () => patchStickyFormat({ underline: !stickyEdit.underline }) },
+            ] as const).map(({ key, icon, active, toggle }) => (
+              <button
+                key={key}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); toggle(); stickyEditorRef.current?.focus(); }}
+                className="flex h-6 w-6 items-center justify-center rounded transition-colors"
+                style={{
+                  background: active ? "rgba(0,0,0,0.18)" : "transparent",
+                  color: active ? "#1a1a1a" : "rgba(0,0,0,0.45)",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+                title={key}
+              >
+                {icon}
+              </button>
+            ))}
+
+            <div className="mx-1 h-4 w-px" style={{ background: "rgba(0,0,0,0.12)" }} />
+
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                patchStickyFormat({ fontSize: adjustStickyFontSize(stickyEdit.fontSize, -1) });
+                stickyEditorRef.current?.focus();
+              }}
+              className="flex h-6 w-6 items-center justify-center rounded"
+              style={{ background: "transparent", border: "none", color: "rgba(0,0,0,0.45)", cursor: "pointer" }}
+              title="Smaller text"
+            >
+              <Minus size={13} />
+            </button>
+            <span
+              className="min-w-[28px] text-center text-[11px] font-medium select-none"
+              style={{ color: "rgba(0,0,0,0.55)" }}
+            >
+              {stickyEdit.fontSize}
+            </span>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                patchStickyFormat({ fontSize: adjustStickyFontSize(stickyEdit.fontSize, 1) });
+                stickyEditorRef.current?.focus();
+              }}
+              className="flex h-6 w-6 items-center justify-center rounded"
+              style={{ background: "transparent", border: "none", color: "rgba(0,0,0,0.45)", cursor: "pointer" }}
+              title="Larger text"
+            >
+              <Plus size={13} />
+            </button>
+
+            <div className="mx-1 h-4 w-px" style={{ background: "rgba(0,0,0,0.12)" }} />
+
+            {([
+              { align: "left" as const, icon: <AlignLeft size={13} /> },
+              { align: "center" as const, icon: <AlignCenter size={13} /> },
+              { align: "right" as const, icon: <AlignRight size={13} /> },
+            ]).map(({ align, icon }) => (
+              <button
+                key={align}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  patchStickyFormat({ align });
+                  stickyEditorRef.current?.focus();
+                }}
+                className="flex h-6 w-6 items-center justify-center rounded transition-colors"
+                style={{
+                  background: stickyEdit.align === align ? "rgba(0,0,0,0.18)" : "transparent",
+                  color: stickyEdit.align === align ? "#1a1a1a" : "rgba(0,0,0,0.45)",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+                title={`Align ${align}`}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+
+          {/* editable content area */}
+          <div
             key={stickyEdit.id}
-            ref={stickyTextareaRef}
-            autoFocus
-            placeholder="Write your note…"
-            defaultValue={stickyEdit.text}
-            className="flex-1 w-full resize-none outline-none bg-transparent"
+            ref={stickyEditorRef}
+            contentEditable
+            suppressContentEditableWarning
+            data-placeholder="Write your note…"
+            className="sticky-editor-body flex-1 w-full outline-none overflow-auto"
             style={{
-              padding:    "10px 12px",
-              fontSize:   Math.max(12, stickyEdit.fontSize),
-              color:      "#1a1a1a",
-              fontFamily: "inherit",
-              lineHeight: 1.55,
-              minHeight:  stickyEdit.height - 32,
-              border:     "none",
+              padding:        "8px 12px",
+              fontSize:       Math.max(11, stickyEdit.fontSize),
+              color:          "#1a1a1a",
+              fontFamily:     "inherit",
+              lineHeight:     1.55,
+              minHeight:      stickyEdit.height - 62,
+              fontWeight:     stickyEdit.bold ? "bold" : "normal",
+              fontStyle:      stickyEdit.italic ? "italic" : "normal",
+              textDecoration: stickyEdit.underline ? "underline" : "none",
+              textAlign:      stickyEdit.align,
+              border:         "none",
             }}
-            onBlur={(e) => commitStickyEdit(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Escape") {
                 e.preventDefault();
-                commitStickyEdit(stickyTextareaRef.current?.value ?? stickyEdit.text);
+                commitStickyEdit();
               }
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
-                commitStickyEdit((e.target as HTMLTextAreaElement).value);
+                commitStickyEdit();
               }
             }}
           />

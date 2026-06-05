@@ -1,3 +1,5 @@
+import type { BoardSettings } from './boardSettings'
+
 export interface BoardMember {
   id: string
   boardId: string
@@ -20,6 +22,7 @@ export interface Board {
   id: string
   name: string
   ownerId: string
+  settings?: BoardSettings | null
   createdAt: string
   updatedAt: string
   members: BoardMember[]

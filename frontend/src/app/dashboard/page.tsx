@@ -92,23 +92,20 @@ export default function DashboardPage() {
   const memberCount = (b: Board) => b._count?.members ?? b.members?.length ?? 1;
 
   return (
-    <div className="min-h-screen" style={{ background: "#0F1117" }}>
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-8 md:px-6 md:pt-10">
         {/* page header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p
-              className="mb-1 text-[11px] font-semibold uppercase tracking-widest"
-              style={{ color: "rgba(255,255,255,0.30)" }}
-            >
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               Workspace
             </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#E8E6DE] md:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
               Welcome back, {firstName}
             </h1>
-            <p className="mt-1.5 text-[14px]" style={{ color: "rgba(255,255,255,0.40)" }}>
+            <p className="mt-1.5 text-[14px] text-muted-foreground">
               {loading
                 ? "Loading your boards…"
                 : boards.length === 0
@@ -119,10 +116,7 @@ export default function DashboardPage() {
 
           <button
             onClick={() => setCreateOpen(true)}
-            className="flex h-10 shrink-0 items-center gap-2 self-start rounded-lg px-4 text-[13px] font-medium text-white transition-all active:scale-[0.98] sm:self-auto"
-            style={{ background: "#6C63FF" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#7C74FF"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#6C63FF"; }}
+            className="flex h-10 shrink-0 items-center gap-2 self-start rounded-lg bg-primary px-4 text-[13px] font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] sm:self-auto"
           >
             <Plus size={16} />
             New board
@@ -135,13 +129,12 @@ export default function DashboardPage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="overflow-hidden rounded-xl"
-                style={{ background: "#161920", border: "0.5px solid rgba(255,255,255,0.07)" }}
+                className="overflow-hidden rounded-xl border border-border bg-card"
               >
-                <Skeleton className="h-28 w-full rounded-none" style={{ background: "rgba(255,255,255,0.04)" }} />
+                <Skeleton className="h-28 w-full rounded-none bg-muted" />
                 <div className="space-y-2 p-4">
-                  <Skeleton className="h-4 w-2/3" style={{ background: "rgba(255,255,255,0.06)" }} />
-                  <Skeleton className="h-3 w-1/2" style={{ background: "rgba(255,255,255,0.04)" }} />
+                  <Skeleton className="h-4 w-2/3 bg-muted" />
+                  <Skeleton className="h-3 w-1/2 bg-muted/70" />
                 </div>
               </div>
             ))}
@@ -153,26 +146,18 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center rounded-2xl px-6 py-20 text-center"
-            style={{
-              background: "#161920",
-              border: "0.5px solid rgba(255,255,255,0.07)",
-            }}
+            className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card px-6 py-20 text-center"
           >
-            <div
-              className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl"
-              style={{ background: "rgba(108,99,255,0.12)" }}
-            >
-              <PenLine size={24} style={{ color: "#6C63FF" }} />
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+              <PenLine size={24} className="text-primary" />
             </div>
-            <h2 className="text-lg font-medium text-[#E8E6DE]">No boards yet</h2>
-            <p className="mt-2 max-w-sm text-[14px]" style={{ color: "rgba(255,255,255,0.40)" }}>
+            <h2 className="text-lg font-medium">No boards yet</h2>
+            <p className="mt-2 max-w-sm text-[14px] text-muted-foreground">
               Create a whiteboard to sketch ideas, plan projects, and collaborate with your team in real time.
             </p>
             <button
               onClick={() => setCreateOpen(true)}
-              className="mt-6 flex h-10 items-center gap-2 rounded-lg px-5 text-[13px] font-medium text-white transition-all active:scale-[0.98]"
-              style={{ background: "#6C63FF" }}
+              className="mt-6 flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-[13px] font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
             >
               <Plus size={15} />
               Create your first board
@@ -196,29 +181,14 @@ export default function DashboardPage() {
                 show:   { opacity: 1, y: 0, transition: { duration: 0.28 } },
               }}
               onClick={() => setCreateOpen(true)}
-              className="group flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-xl p-6 text-center transition-all duration-200 active:scale-[0.98]"
-              style={{
-                background: "rgba(108,99,255,0.06)",
-                border: "1.5px dashed rgba(108,99,255,0.35)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(108,99,255,0.10)";
-                e.currentTarget.style.borderColor = "rgba(108,99,255,0.55)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(108,99,255,0.06)";
-                e.currentTarget.style.borderColor = "rgba(108,99,255,0.35)";
-              }}
+              className="group flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-6 text-center transition-all duration-200 hover:border-primary/60 hover:bg-primary/10 active:scale-[0.98]"
             >
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-xl transition-transform group-hover:scale-105"
-                style={{ background: "rgba(108,99,255,0.18)" }}
-              >
-                <Plus size={22} style={{ color: "#6C63FF" }} />
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 transition-transform group-hover:scale-105">
+                <Plus size={22} className="text-primary" />
               </div>
               <div>
-                <p className="text-[14px] font-medium text-[#E8E6DE]">New board</p>
-                <p className="mt-0.5 text-[12px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                <p className="text-[14px] font-medium">New board</p>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">
                   Start from scratch
                 </p>
               </div>
@@ -247,20 +217,7 @@ export default function DashboardPage() {
                         if (!isDeleting) router.push(`/board/${board.id}`);
                       }
                     }}
-                    className="group relative flex min-h-[220px] cursor-pointer flex-col overflow-hidden rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99]"
-                    style={{
-                      background: "#161920",
-                      border: "0.5px solid rgba(255,255,255,0.07)",
-                      boxShadow: "0 0 0 0 transparent",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(108,99,255,0.35)";
-                      e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.25)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
-                      e.currentTarget.style.boxShadow = "0 0 0 0 transparent";
-                    }}
+                    className="group relative flex min-h-[220px] cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg active:scale-[0.99]"
                   >
                     {/* preview */}
                     <div
@@ -287,7 +244,7 @@ export default function DashboardPage() {
                     {/* meta */}
                     <div className="flex flex-1 flex-col p-4">
                       <div className="flex items-start justify-between gap-2">
-                        <h2 className="line-clamp-1 text-[15px] font-medium text-[#E8E6DE]">
+                        <h2 className="line-clamp-1 text-[15px] font-medium">
                           {board.name}
                         </h2>
                         {isOwner && (
@@ -298,10 +255,7 @@ export default function DashboardPage() {
                               e.stopPropagation();
                               void handleDelete(board.id);
                             }}
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg opacity-0 transition-all group-hover:opacity-100 disabled:opacity-40"
-                            style={{ color: "rgba(255,255,255,0.35)" }}
-                            onMouseEnter={(e) => { e.currentTarget.style.color = "#F87171"; e.currentTarget.style.background = "rgba(248,113,113,0.1)"; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; e.currentTarget.style.background = "transparent"; }}
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 disabled:opacity-40"
                             aria-label={`Delete ${board.name}`}
                           >
                             <Trash2 size={13} />
@@ -309,7 +263,7 @@ export default function DashboardPage() {
                         )}
                       </div>
 
-                      <div className="mt-auto flex items-center gap-3 pt-3 text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                      <div className="mt-auto flex items-center gap-3 pt-3 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar size={11} />
                           {formatDate(board.updatedAt ?? board.createdAt)}

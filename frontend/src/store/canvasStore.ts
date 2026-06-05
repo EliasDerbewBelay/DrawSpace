@@ -59,6 +59,10 @@ interface CanvasStore {
   showGrid:    boolean
   setShowGrid: (show: boolean) => void
 
+  /** null = follow app theme (--canvas-bg) */
+  canvasBackground: string | null
+  setCanvasBackground: (color: string | null) => void
+
   stageScale:    number
   setStageScale: (scale: number) => void
 
@@ -168,6 +172,9 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
 
   showGrid:    true,
   setShowGrid: (showGrid) => set({ showGrid }),
+
+  canvasBackground:    null,
+  setCanvasBackground: (canvasBackground) => set({ canvasBackground }),
 
   stageScale:    1,
   setStageScale: (stageScale) => set({ stageScale }),

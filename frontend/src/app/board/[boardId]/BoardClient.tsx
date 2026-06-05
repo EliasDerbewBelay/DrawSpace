@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useAuth } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
 import type Konva from "konva";
 import { getSocket } from "@/lib/socket";
@@ -9,8 +10,15 @@ import { Topbar }      from "@/components/board/Topbar";
 import { LeftToolbar } from "@/components/board/LeftToolbar";
 import { RightPanel }  from "@/components/board/RightPanel";
 import { BottomBar }   from "@/components/board/BottomBar";
-import { ShareModal }  from "@/components/board/ShareModal";
-import { ContextMenu } from "@/components/board/ContextMenu";
+import { ShareModal }         from "@/components/board/ShareModal";
+import { BoardSettingsModal } from "@/components/board/BoardSettingsModal";
+import { ContextMenu }        from "@/components/board/ContextMenu";
+import { useCanvasStore }     from "@/store/canvasStore";
+import { saveBoard }          from "@/lib/api";
+import {
+  normalizeBoardSettings,
+  resolveCanvasBackgroundColor,
+} from "@/types/boardSettings";
 
 const WhiteboardCanvas = dynamic(
   () => import("@/components/canvas/WhiteboardCanvas"),
@@ -22,11 +30,24 @@ interface Props {
   userId: string;
 }
 
+function applyBoardSettings(settings: unknown) {
+  const s = normalizeBoardSettings(settings);
+  const store = useCanvasStore.getState();
+  store.setShowGrid(s.showGrid);
+  store.setStrokeColor(s.defaultStrokeColor);
+  store.setFillColor(s.defaultFillColor);
+  store.setStrokeWidth(s.defaultStrokeWidth);
+  store.setCanvasBackground(resolveCanvasBackgroundColor(s));
+}
+
 export default function BoardClient({ board, userId }: Props) {
+  const { getToken } = useAuth();
   const stageRef = useRef<Konva.Stage | null>(null);
 
+  const [currentBoard, setCurrentBoard]   = useState(board);
   const [onlineUsers, setOnlineUsers]     = useState<string[]>([userId]);
   const [isShareOpen, setIsShareOpen]     = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [contextMenu, setContextMenu]     = useState<{
     position: { x: number; y: number } | null;
     elementId: string | null;
@@ -39,6 +60,10 @@ export default function BoardClient({ board, userId }: Props) {
         : { position: null, elementId: null }
     );
   }, []);
+
+  useEffect(() => {
+    applyBoardSettings(currentBoard.settings);
+  }, [currentBoard.id, currentBoard.settings]);
 
   /* track online room members */
   useEffect(() => {
@@ -55,26 +80,35 @@ export default function BoardClient({ board, userId }: Props) {
     return () => window.removeEventListener("wheel", onWheel);
   }, [closeContextMenu]);
 
+  /* best-effort save when leaving the board */
+  useEffect(() => {
+    return () => {
+      void (async () => {
+        const token = await getToken();
+        if (!token) return;
+        const elements = useCanvasStore.getState().elements;
+        try {
+          await saveBoard(currentBoard.id, elements, token);
+        } catch {
+          /* ignore — user may have navigated away mid-request */
+        }
+      })();
+    };
+  }, [currentBoard.id, getToken]);
+
   return (
     <>
-      {/* global scrollbar + misc overrides injected once */}
-      <style>{`
-        ::-webkit-scrollbar          { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track    { background: transparent; }
-        ::-webkit-scrollbar-thumb    { background: rgba(255,255,255,0.10); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.20); }
-      `}</style>
-
-      <div
-        className="flex flex-col overflow-hidden"
-        style={{ height: "100dvh", background: "#0F1117" }}
-      >
+      <div className="flex flex-col overflow-hidden bg-canvas text-foreground" style={{ height: "100dvh" }}>
         {/* topbar — fixed, z-40 */}
         <Topbar
-          board={board}
+          board={currentBoard}
           userId={userId}
           onlineUsers={onlineUsers}
           onShareClick={() => setIsShareOpen(true)}
+          onSettingsClick={() => setIsSettingsOpen(true)}
+          onBoardSaved={(savedAt) =>
+            setCurrentBoard((prev) => ({ ...prev, updatedAt: savedAt }))
+          }
           stageRef={stageRef}
           onDelete={() => {/* router.push handled inside Topbar */}}
         />
@@ -93,7 +127,7 @@ export default function BoardClient({ board, userId }: Props) {
             style={{ flex: 1, marginLeft: 44, marginRight: 0 }}
           >
             <WhiteboardCanvas
-              boardId={board.id}
+              boardId={currentBoard.id}
               userId={userId}
               stageRef={stageRef}
               onContextMenu={(pos, elId) =>
@@ -107,14 +141,26 @@ export default function BoardClient({ board, userId }: Props) {
         </div>
 
         {/* bottom bar — fixed, z-40, centred */}
-        <BottomBar stageRef={stageRef} boardName={board.name} />
+        <BottomBar stageRef={stageRef} boardName={currentBoard.name} />
 
         {/* share modal — z-60 */}
         <ShareModal
-          board={board}
+          board={currentBoard}
           userId={userId}
           isOpen={isShareOpen}
           onClose={() => setIsShareOpen(false)}
+        />
+
+        <BoardSettingsModal
+          board={currentBoard}
+          userId={userId}
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          onShareClick={() => setIsShareOpen(true)}
+          onSaved={(updated) => {
+            setCurrentBoard(updated);
+            applyBoardSettings(updated.settings);
+          }}
         />
 
         {/* context menu — z-50 */}

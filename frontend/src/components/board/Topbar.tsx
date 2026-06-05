@@ -1,18 +1,20 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import {
   ArrowLeft, Share2, MoreHorizontal, Check, Pencil, Copy,
   Download, FileJson, Settings, Trash2, MousePointer2,
-  Pen, Square, Circle, Type,
+  Pen, Square, Circle, Type, Save, Loader2,
 } from "lucide-react";
 import { DropdownMenu, AlertDialog } from "radix-ui";
 import type Konva from "konva";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { boardIconBtn, boardMenuItem, boardToolBtn } from "@/lib/board-ui";
 import { useCanvasStore } from "@/store/canvasStore";
-import { updateBoard, deleteBoard } from "@/lib/api";
+import { updateBoard, deleteBoard, saveBoard } from "@/lib/api";
 import type { Board, BoardMember } from "@/types/board";
 import type { ToolType } from "@/types/canvas";
 
@@ -44,12 +46,14 @@ interface TopbarProps {
   board:       Board & { members: BoardMember[] };
   userId:      string;
   onlineUsers: string[];
-  onShareClick:() => void;
+  onShareClick:    () => void;
+  onSettingsClick: () => void;
+  onBoardSaved?:   (savedAt: string) => void;
   stageRef:    React.RefObject<Konva.Stage | null>;
   onDelete:    () => void;
 }
 
-export function Topbar({ board, userId, onlineUsers, onShareClick, stageRef, onDelete }: TopbarProps) {
+export function Topbar({ board, userId, onlineUsers, onShareClick, onSettingsClick, onBoardSaved, stageRef, onDelete }: TopbarProps) {
   const router           = useRouter();
   const { getToken }     = useAuth();
   const { activeTool, elements, setTool } = useCanvasStore();
@@ -57,11 +61,40 @@ export function Topbar({ board, userId, onlineUsers, onShareClick, stageRef, onD
   const [name, setName]         = useState(board.name);
   const [editing, setEditing]   = useState(false);
   const [inputVal, setInputVal] = useState(board.name);
-  const [saved, setSaved]       = useState(false);
+  const [nameSaved, setNameSaved]   = useState(false);
+  const [saveState, setSaveState]   = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+  useEffect(() => { setName(board.name); setInputVal(board.name); }, [board.name]);
+
+  const handleSaveBoard = useCallback(async () => {
+    if (saveState === "saving") return;
+    const token = await getToken();
+    if (!token) return;
+    setSaveState("saving");
+    try {
+      const { savedAt } = await saveBoard(board.id, elements, token);
+      setSaveState("saved");
+      onBoardSaved?.(savedAt);
+      setTimeout(() => setSaveState("idle"), 2000);
+    } catch {
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 3000);
+    }
+  }, [saveState, getToken, board.id, elements, onBoardSaved]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        void handleSaveBoard();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleSaveBoard]);
 
   async function saveName() {
     const trimmed = inputVal.trim();
@@ -71,8 +104,8 @@ export function Topbar({ board, userId, onlineUsers, onShareClick, stageRef, onD
     try {
       const updated = await updateBoard(board.id, trimmed, token);
       setName(updated.name); setInputVal(updated.name);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
+      setNameSaved(true);
+      setTimeout(() => setNameSaved(false), 1500);
     } catch { setInputVal(name); }
     setEditing(false);
   }
@@ -106,33 +139,20 @@ export function Topbar({ board, userId, onlineUsers, onShareClick, stageRef, onD
   const visibleUsers = onlineUsers.slice(0, 3);
   const extra = Math.max(0, onlineUsers.length - 3);
 
-  const menuItem = cn(
-    "flex items-center gap-2.5 rounded-[6px] px-2.5 py-1.5 text-[13px] outline-none cursor-pointer transition-colors",
-    "text-white/70 hover:bg-white/6 hover:text-white focus:bg-white/6 focus:text-white"
-  );
-
   return (
     <>
-      <header
-        className="fixed top-0 left-0 right-0 flex h-14 items-center justify-between px-4 gap-3 z-40"
-        style={{
-          background: "rgba(22,25,32,0.85)",
-          backdropFilter: "blur(12px)",
-          borderBottom: "0.5px solid rgba(255,255,255,0.07)",
-        }}
-      >
+      <header className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-border bg-card/90 px-4 backdrop-blur-md">
         {/* ── LEFT ─────────────────────────────────── */}
         <div className="flex items-center gap-2 min-w-0">
           <button
             title="Back to dashboard"
             onClick={() => router.push("/dashboard")}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/50 hover:text-white transition-all active:scale-95"
-            style={{ background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.08)" }}
+            className={cn(boardIconBtn, "h-8 w-8 shrink-0")}
           >
             <ArrowLeft size={16} />
           </button>
 
-          <span className="text-white/25 text-sm mx-0.5">/</span>
+          <span className="mx-0.5 text-sm text-muted-foreground/50">/</span>
 
           {editing ? (
             <input
@@ -144,51 +164,39 @@ export function Topbar({ board, userId, onlineUsers, onShareClick, stageRef, onD
                 if (e.key === "Enter") void saveName();
                 if (e.key === "Escape") { setInputVal(name); setEditing(false); }
               }}
-              className="max-w-[180px] truncate rounded-md bg-white/6 px-2 py-0.5 text-sm font-medium text-white outline-none"
-              style={{ outline: "1.5px solid #6C63FF" }}
+              className="max-w-[180px] truncate rounded-md border border-primary bg-muted px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-2 ring-primary/30"
             />
           ) : (
             <button
               onClick={() => { setEditing(true); setInputVal(name); }}
-              className="flex items-center gap-1.5 max-w-[180px] truncate rounded-md px-2 py-0.5 text-sm font-medium text-[#E8E6DE] hover:bg-white/6 transition-colors"
+              className="flex max-w-[180px] items-center gap-1.5 truncate rounded-md px-2 py-0.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
               title="Click to rename"
             >
               <span className="truncate">{name}</span>
-              {saved && <Check size={12} style={{ color: "#5DCAA5", flexShrink: 0 }} />}
+              {nameSaved && <Check size={12} className="shrink-0 text-[var(--success)]" />}
             </button>
           )}
 
           {/* live pill */}
-          <div
-            className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full"
-            style={{ background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.08)" }}
-          >
+          <div className="hidden items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2 py-0.5 sm:flex">
             <span
               className="h-1.5 w-1.5 rounded-full"
-              style={{ background: isLive ? "#5DCAA5" : "rgba(255,255,255,0.25)" }}
+              style={{ background: isLive ? "var(--success)" : "var(--muted-foreground)" }}
             />
-            <span className="text-[11px]" style={{ color: isLive ? "#5DCAA5" : "rgba(255,255,255,0.30)" }}>
+            <span className="text-[11px]" style={{ color: isLive ? "var(--success)" : undefined }}>
               {isLive ? "Live" : "Solo"}
             </span>
           </div>
         </div>
 
         {/* ── CENTER — quick tool pills ─────────────── */}
-        <div
-          className="hidden md:flex items-center gap-px rounded-[10px] p-[3px]"
-          style={{ background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.08)" }}
-        >
+        <div className="hidden items-center gap-px rounded-[10px] border border-border bg-muted/50 p-[3px] md:flex">
           {TOP_TOOLS.map(({ type, icon, shortcut }) => (
             <button
               key={type}
               title={`${type.charAt(0).toUpperCase() + type.slice(1)} (${shortcut})`}
               onClick={() => setTool(type)}
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-[7px] transition-all duration-100 active:scale-95",
-                activeTool === type
-                  ? "bg-[#6C63FF] text-white"
-                  : "text-white/40 hover:bg-white/6 hover:text-white/70"
-              )}
+              className={boardToolBtn(activeTool === type)}
             >
               {icon}
             </button>
@@ -207,7 +215,7 @@ export function Topbar({ board, userId, onlineUsers, onShareClick, stageRef, onD
                   className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white"
                   style={{
                     background: colorForUser(uid),
-                    border: "2px solid #161920",
+                    border: "2px solid var(--card)",
                     marginLeft: i === 0 ? 0 : -8,
                     zIndex: visibleUsers.length - i,
                   }}
@@ -217,13 +225,8 @@ export function Topbar({ board, userId, onlineUsers, onShareClick, stageRef, onD
               ))}
               {extra > 0 && (
                 <div
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold"
-                  style={{
-                    background: "rgba(255,255,255,0.1)",
-                    color: "rgba(255,255,255,0.6)",
-                    border: "2px solid #161920",
-                    marginLeft: -8,
-                  }}
+                  className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-muted text-[10px] font-bold text-muted-foreground"
+                  style={{ marginLeft: -8 }}
                 >
                   +{extra}
                 </div>
@@ -231,59 +234,85 @@ export function Topbar({ board, userId, onlineUsers, onShareClick, stageRef, onD
             </div>
           )}
 
-          <div className="h-5 w-px" style={{ background: "rgba(255,255,255,0.1)" }} />
+          <div className="h-5 w-px bg-border" />
 
-          {/* share */}
+          <ThemeToggle />
+
+          <button
+            onClick={() => void handleSaveBoard()}
+            disabled={saveState === "saving"}
+            title="Save board (⌘S)"
+            className={cn(
+              "flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-medium transition-all active:scale-95 disabled:opacity-60",
+              saveState === "saved"
+                ? "border-[var(--success)]/40 bg-[var(--success)]/10 text-[var(--success)]"
+                : saveState === "error"
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-border bg-muted/50 text-foreground hover:bg-muted"
+            )}
+          >
+            {saveState === "saving" ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : saveState === "saved" ? (
+              <Check size={14} />
+            ) : (
+              <Save size={14} />
+            )}
+            {saveState === "saving"
+              ? "Saving…"
+              : saveState === "saved"
+                ? "Saved"
+                : "Save"}
+          </button>
+
           <button
             onClick={onShareClick}
-            className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium text-white transition-all active:scale-95"
-            style={{ background: "#6C63FF" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#7C74FF"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#6C63FF"; }}
+            className="flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-[13px] font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-95"
           >
             <Share2 size={14} />
             Share
           </button>
 
-          {/* more menu */}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button
                 title="More options"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/6 transition-all active:scale-95"
+                className={cn(boardIconBtn, "h-8 w-8 border-0")}
               >
                 <MoreHorizontal size={16} />
               </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
               <DropdownMenu.Content
-                className="z-50 min-w-[180px] rounded-[10px] p-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-                style={{ background: "#1E2028", border: "0.5px solid rgba(255,255,255,0.08)" }}
+                className="z-50 min-w-[180px] rounded-[10px] border border-border bg-popover p-1 text-popover-foreground shadow-xl"
                 sideOffset={4}
                 align="end"
               >
-                <DropdownMenu.Item className={menuItem} onSelect={() => { setEditing(true); setInputVal(name); }}>
-                  <Pencil size={14} className="text-white/40" /> Rename board
+                <DropdownMenu.Item className={boardMenuItem} onSelect={() => { setEditing(true); setInputVal(name); }}>
+                  <Pencil size={14} className="text-muted-foreground" /> Rename board
                 </DropdownMenu.Item>
-                <DropdownMenu.Item className={menuItem} onSelect={() => {}}>
-                  <Copy size={14} className="text-white/40" /> Duplicate board
+                <DropdownMenu.Item className={boardMenuItem} onSelect={() => {}}>
+                  <Copy size={14} className="text-muted-foreground" /> Duplicate board
                 </DropdownMenu.Item>
-                <DropdownMenu.Item className={menuItem} onSelect={exportPng}>
-                  <Download size={14} className="text-white/40" /> Export as PNG
+                <DropdownMenu.Item className={boardMenuItem} onSelect={exportPng}>
+                  <Download size={14} className="text-muted-foreground" /> Export as PNG
                 </DropdownMenu.Item>
-                <DropdownMenu.Item className={menuItem} onSelect={exportJson}>
-                  <FileJson size={14} className="text-white/40" /> Export as JSON
+                <DropdownMenu.Item className={boardMenuItem} onSelect={exportJson}>
+                  <FileJson size={14} className="text-muted-foreground" /> Export as JSON
                 </DropdownMenu.Item>
-                <DropdownMenu.Separator className="my-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
-                <DropdownMenu.Item className={menuItem} onSelect={() => {}}>
-                  <Settings size={14} className="text-white/40" /> Board settings
+                <DropdownMenu.Item className={boardMenuItem} onSelect={() => void handleSaveBoard()}>
+                  <Save size={14} className="text-muted-foreground" /> Save board
                 </DropdownMenu.Item>
-                <DropdownMenu.Separator className="my-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
+                <DropdownMenu.Separator className="my-1 h-px bg-border" />
+                <DropdownMenu.Item className={boardMenuItem} onSelect={onSettingsClick}>
+                  <Settings size={14} className="text-muted-foreground" /> Board settings
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator className="my-1 h-px bg-border" />
                 <DropdownMenu.Item
-                  className={cn(menuItem, "text-[#F87171] hover:text-[#F87171] focus:text-[#F87171]")}
+                  className={cn(boardMenuItem, "text-destructive hover:text-destructive focus:text-destructive")}
                   onSelect={() => setDeleteOpen(true)}
                 >
-                  <Trash2 size={14} style={{ color: "#F87171" }} /> Delete board
+                  <Trash2 size={14} className="text-destructive" /> Delete board
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
@@ -295,33 +324,24 @@ export function Topbar({ board, userId, onlineUsers, onShareClick, stageRef, onD
       <AlertDialog.Root open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialog.Portal>
           <AlertDialog.Overlay className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" />
-          <AlertDialog.Content
-            className="fixed left-1/2 top-1/2 z-[60] -translate-x-1/2 -translate-y-1/2 w-[360px] max-w-[calc(100vw-32px)] rounded-2xl p-6 shadow-2xl"
-            style={{ background: "#1E2028", border: "0.5px solid rgba(255,255,255,0.08)" }}
-          >
-            <AlertDialog.Title className="text-base font-semibold text-white mb-2">
+          <AlertDialog.Content className="fixed left-1/2 top-1/2 z-[60] w-[360px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-2xl">
+            <AlertDialog.Title className="mb-2 text-base font-semibold text-foreground">
               Delete board?
             </AlertDialog.Title>
-            <AlertDialog.Description className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.45)" }}>
-              This will permanently delete <strong className="text-white/80">{name}</strong> and all its elements.
+            <AlertDialog.Description className="mb-6 text-sm text-muted-foreground">
+              This will permanently delete <strong className="text-foreground">{name}</strong> and all its elements.
               This action cannot be undone.
             </AlertDialog.Description>
             <div className="flex justify-end gap-2">
               <AlertDialog.Cancel asChild>
-                <button
-                  className="h-9 rounded-lg px-4 text-sm text-white/60 hover:text-white transition-colors"
-                  style={{ background: "rgba(255,255,255,0.06)" }}
-                >
+                <button className="h-9 rounded-lg bg-muted px-4 text-sm text-muted-foreground transition-colors hover:text-foreground">
                   Cancel
                 </button>
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
                 <button
                   onClick={() => void handleDelete()}
-                  className="h-9 rounded-lg px-4 text-sm font-medium text-white transition-all active:scale-95"
-                  style={{ background: "#F87171" }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#EF4444"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#F87171"; }}
+                  className="h-9 rounded-lg bg-destructive px-4 text-sm font-medium text-white transition-all hover:opacity-90 active:scale-95"
                 >
                   Delete board
                 </button>

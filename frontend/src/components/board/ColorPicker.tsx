@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 const STROKE_PRESETS = [
   "#6C63FF", "#3ECFCF", "#F0997B", "#FAC775",
-  "#97C459", "#D4537E", "#F1F0E8", "rgba(255,255,255,0.2)",
+  "#97C459", "#D4537E", "#F1F0E8", "rgba(128,128,128,0.35)",
 ];
 
 const FILL_PRESETS = [
@@ -19,38 +19,26 @@ const WIDTHS = [
   { label: "L", value: 8 },
 ] as const;
 
-const label = "text-[10px] font-semibold uppercase tracking-widest mb-2 block";
+const label = "mb-2 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground";
 
 export function ColorPicker() {
   const { strokeColor, fillColor, strokeWidth, setStrokeColor, setFillColor, setStrokeWidth } =
     useCanvasStore();
 
   return (
-    <div
-      className="flex flex-col gap-4"
-      style={{
-        width: 200,
-        background: "#1E2028",
-        border: "0.5px solid rgba(255,255,255,0.08)",
-        borderRadius: 12,
-        padding: 14,
-        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-      }}
-    >
-      {/* Stroke */}
+    <div className="flex w-[200px] flex-col gap-4 rounded-xl border border-border bg-popover p-3.5 text-popover-foreground shadow-xl">
       <div>
-        <span className={label} style={{ color: "rgba(255,255,255,0.35)" }}>Stroke</span>
-        <div className="grid grid-cols-4 gap-1.5 mb-2">
+        <span className={label}>Stroke</span>
+        <div className="mb-2 grid grid-cols-4 gap-1.5">
           {STROKE_PRESETS.map((c) => (
             <button
               key={c}
               title={c}
               onClick={() => setStrokeColor(c)}
-              className="relative flex h-6 w-6 items-center justify-center rounded-full transition-transform hover:scale-110"
+              className="relative flex h-6 w-6 items-center justify-center rounded-full border border-border transition-transform hover:scale-110"
               style={{
-                background: c === "rgba(255,255,255,0.2)" ? "rgba(255,255,255,0.2)" : c,
-                border: "1px solid rgba(255,255,255,0.15)",
-                outline: strokeColor === c ? "2px solid white" : "none",
+                background: c,
+                outline: strokeColor === c ? "2px solid var(--foreground)" : "none",
                 outlineOffset: 2,
               }}
             />
@@ -58,36 +46,30 @@ export function ColorPicker() {
         </div>
         <input
           type="color"
-          value={strokeColor.startsWith("rgba") ? "#ffffff" : strokeColor}
+          value={strokeColor.startsWith("#") ? strokeColor : "#6C63FF"}
           onChange={(e) => setStrokeColor(e.target.value)}
-          className="h-7 w-full cursor-pointer rounded-md border-0"
-          style={{ background: "none" }}
-          title="Custom stroke color"
+          className="h-7 w-full cursor-pointer rounded-md border border-border bg-background"
         />
       </div>
 
-      <div className="h-px w-full" style={{ background: "rgba(255,255,255,0.07)" }} />
-
-      {/* Fill */}
       <div>
-        <span className={label} style={{ color: "rgba(255,255,255,0.35)" }}>Fill</span>
-        <div className="grid grid-cols-4 gap-1.5 mb-2">
+        <span className={label}>Fill</span>
+        <div className="mb-2 grid grid-cols-4 gap-1.5">
           {FILL_PRESETS.map((c) => (
             <button
               key={c}
-              title={c === "transparent" ? "None" : c}
+              title={c}
               onClick={() => setFillColor(c)}
-              className="relative flex h-6 w-6 items-center justify-center rounded-full transition-transform hover:scale-110"
+              className="relative flex h-6 w-6 items-center justify-center rounded-full border border-border transition-transform hover:scale-110"
               style={{
-                background: c === "transparent" ? "rgba(255,255,255,0.08)" : c,
-                border: "1px solid rgba(255,255,255,0.15)",
-                outline: fillColor === c ? "2px solid white" : "none",
+                background: c === "transparent" ? "var(--muted)" : c,
+                outline: fillColor === c ? "2px solid var(--foreground)" : "none",
                 outlineOffset: 2,
               }}
             >
               {c === "transparent" && (
-                <svg width="16" height="16" viewBox="0 0 16 16">
-                  <line x1="2" y1="14" x2="14" y2="2" stroke="#F87171" strokeWidth="1.5" strokeLinecap="round" />
+                <svg className="absolute inset-0" width="24" height="24" viewBox="0 0 24 24">
+                  <line x1="4" y1="20" x2="20" y2="4" stroke="var(--destructive)" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               )}
             </button>
@@ -95,41 +77,32 @@ export function ColorPicker() {
         </div>
         <input
           type="color"
-          value={fillColor === "transparent" || fillColor.startsWith("rgba") ? "#ffffff" : fillColor}
+          value={fillColor === "transparent" ? "#ffffff" : fillColor}
           onChange={(e) => setFillColor(e.target.value)}
-          className="h-7 w-full cursor-pointer rounded-md border-0"
-          style={{ background: "none" }}
-          title="Custom fill color"
+          className="h-7 w-full cursor-pointer rounded-md border border-border bg-background"
         />
       </div>
 
-      <div className="h-px w-full" style={{ background: "rgba(255,255,255,0.07)" }} />
-
-      {/* Stroke width */}
       <div>
-        <span className={label} style={{ color: "rgba(255,255,255,0.35)" }}>Width</span>
-        <div className="flex gap-1.5">
+        <span className={label}>Width</span>
+        <div className="flex gap-1">
           {WIDTHS.map(({ label: lbl, value }) => (
             <button
               key={value}
               onClick={() => setStrokeWidth(value)}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-[10px] font-medium transition-colors",
+                "flex flex-1 flex-col items-center gap-1 rounded-md border py-1.5 text-[10px] transition-colors",
                 strokeWidth === value
-                  ? "text-[#6C63FF]"
-                  : "text-white/40 hover:text-white/70"
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
               )}
-              style={{
-                background: strokeWidth === value ? "rgba(108,99,255,0.15)" : "rgba(255,255,255,0.04)",
-                border: strokeWidth === value ? "0.5px solid #6C63FF" : "0.5px solid rgba(255,255,255,0.1)",
-              }}
             >
               <span
                 className="block rounded-full"
                 style={{
-                  width: 20,
+                  width: 16,
                   height: value,
-                  background: strokeWidth === value ? "#6C63FF" : "rgba(255,255,255,0.3)",
+                  background: strokeWidth === value ? "var(--brand)" : "var(--muted-foreground)",
                 }}
               />
               {lbl}

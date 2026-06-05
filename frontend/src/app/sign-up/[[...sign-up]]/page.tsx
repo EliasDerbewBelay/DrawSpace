@@ -2,8 +2,9 @@
 
 import { SignUp } from "@clerk/nextjs";
 import Link from "next/link";
-import { PenLine, Sun, Moon } from "lucide-react";
+import { PenLine } from "lucide-react";
 import { useTheme } from "next-themes";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const darkAppearance = {
   layout: {
@@ -94,19 +95,14 @@ const lightAppearance = {
 };
 
 export default function SignUpPage() {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      {/* Theme toggle — top right */}
-      <button
-        onClick={() => setTheme(isDark ? "light" : "dark")}
-        aria-label="Toggle theme"
-        className="fixed top-4 right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-      >
-        {isDark ? <Sun size={15} /> : <Moon size={15} />}
-      </button>
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
 
       <div className="flex w-full max-w-sm flex-col items-center px-6 py-12">
         {/* Logo */}

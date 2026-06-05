@@ -66,27 +66,17 @@ export function ShareModal({ board, userId, isOpen, onClose }: Props) {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-[60] -translate-x-1/2 -translate-y-1/2 max-w-[calc(100vw-32px)] outline-none"
-          style={{
-            width: 420,
-            background: "#1E2028",
-            border: "0.5px solid rgba(255,255,255,0.08)",
-            borderRadius: 16,
-            padding: 24,
-            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-          }}
+          className="fixed left-1/2 top-1/2 z-[60] w-[420px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-2xl outline-none"
         >
-          {/* Header */}
-          <Dialog.Title className="text-[18px] font-medium text-white">
+          <Dialog.Title className="text-[18px] font-medium text-foreground">
             Share board
           </Dialog.Title>
-          <Dialog.Description className="mt-1 text-[13px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+          <Dialog.Description className="mt-1 text-[13px] text-muted-foreground">
             Anyone with the link can join and edit.
           </Dialog.Description>
 
-          {/* Link */}
           <div className="mt-6">
-            <span className="block text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.40)" }}>
+            <span className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               Board link
             </span>
             <div className="flex gap-2">
@@ -94,70 +84,58 @@ export function ShareModal({ board, userId, isOpen, onClose }: Props) {
                 readOnly
                 value={url}
                 onClick={(e) => (e.target as HTMLInputElement).select()}
-                className="flex-1 rounded-lg px-3 py-2 text-[13px] outline-none cursor-text"
-                style={{
-                  background: "#0F1117",
-                  border: "0.5px solid rgba(255,255,255,0.10)",
-                  color: "rgba(255,255,255,0.70)",
-                }}
+                className="flex-1 cursor-text rounded-lg border border-border bg-background px-3 py-2 text-[13px] text-foreground outline-none"
               />
               <button
                 onClick={copyLink}
                 title="Copy link"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all active:scale-95"
-                style={{ background: "#6C63FF" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#7C74FF"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#6C63FF"; }}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all hover:opacity-90 active:scale-95"
               >
                 {copied
-                  ? <Check size={14} style={{ color: "#5DCAA5" }} />
-                  : <Copy size={14} className="text-white" />
+                  ? <Check size={14} className="text-[var(--success)]" />
+                  : <Copy size={14} />
                 }
               </button>
             </div>
           </div>
 
-          {/* Members */}
           {members.length > 0 && (
             <div className="mt-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.40)" }}>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Members
                 </span>
-                <span
-                  className="rounded-full px-1.5 py-0.5 text-[10px]"
-                  style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.40)" }}
-                >
+                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                   {members.length}
                 </span>
               </div>
-              <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
+              <div className="flex max-h-[200px] flex-col gap-0.5 overflow-y-auto">
                 {members.map((m) => {
                   const isOwner  = m.userId === board.ownerId;
                   const isYou    = m.userId === userId;
                   const displayName = m.userId.replace(/^user_/, "").slice(0, 12);
                   return (
-                    <div key={m.id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-white/4">
+                    <div key={m.id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted/50">
                       <div
                         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
                         style={{ background: colorForUser(m.userId) }}
                       >
                         {initials(m.userId)}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[14px] text-white/80 truncate">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[14px] text-foreground">
                           {displayName}{isYou ? " (you)" : ""}
                         </p>
-                        <p className="text-[12px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                        <p className="text-[12px] text-muted-foreground">
                           {isOwner ? "Owner" : "Editor"}
                         </p>
                       </div>
                       <span
-                        className="rounded-full px-2 py-0.5 text-[11px] font-medium shrink-0"
-                        style={{
-                          background: isOwner ? "rgba(108,99,255,0.2)" : "rgba(255,255,255,0.06)",
-                          color:      isOwner ? "#A09AFF"             : "rgba(255,255,255,0.50)",
-                        }}
+                        className={
+                          isOwner
+                            ? "shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary"
+                            : "shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                        }
                       >
                         {isOwner ? "Owner" : "Editor"}
                       </span>
@@ -168,18 +146,14 @@ export function ShareModal({ board, userId, isOpen, onClose }: Props) {
             </div>
           )}
 
-          {/* Footer */}
           <div className="mt-6 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[12px]" style={{ color: "rgba(255,255,255,0.40)" }}>
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#5DCAA5" }} />
+            <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
               Link sharing is on
             </div>
             <button
               onClick={onClose}
-              className="h-9 rounded-lg px-5 text-[13px] font-medium text-white transition-all active:scale-95"
-              style={{ background: "#6C63FF" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#7C74FF"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#6C63FF"; }}
+              className="h-9 rounded-lg bg-primary px-5 text-[13px] font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-95"
             >
               Done
             </button>

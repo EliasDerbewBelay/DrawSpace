@@ -9,9 +9,9 @@ import type { KonvaData } from "@/types/canvas";
 const STROKE_COLORS = ["#6C63FF", "#3ECFCF", "#F0997B", "#FAC775", "#97C459", "#D4537E", "#F1F0E8", "rgba(255,255,255,0.2)"];
 const STROKE_SIZES  = [{ label: "S", value: 2 }, { label: "M", value: 4 }, { label: "L", value: 8 }] as const;
 
-const sectionLabel = "text-[10px] font-semibold uppercase tracking-widest mb-2 block";
-const numInput = "w-[66px] rounded-md bg-[#0F1117] px-2 py-1 text-[12px] text-[#E8E6DE] outline-none transition-colors focus:outline focus:outline-[1.5px] focus:outline-[#6C63FF]";
-const ghostBtn  = "flex h-7 w-7 items-center justify-center rounded-md text-white/40 hover:bg-white/6 hover:text-white/80 transition-colors active:scale-95";
+const sectionLabel = "mb-2 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground";
+const numInput = "w-[66px] rounded-md border border-border bg-background px-2 py-1 text-[12px] text-foreground outline-none transition-colors focus:outline focus:outline-2 focus:outline-primary/50";
+const ghostBtn  = "flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95";
 
 export function RightPanel() {
   const {
@@ -75,92 +75,79 @@ export function RightPanel() {
 
   return (
     <div
-      className="fixed right-0 flex flex-col gap-0 overflow-y-auto z-30"
-      style={{
-        top: 56,
-        width: 180,
-        height: "calc(100vh - 56px)",
-        background: "#161920",
-        borderLeft: "0.5px solid rgba(255,255,255,0.07)",
-        scrollbarWidth: "thin",
-        scrollbarColor: "rgba(255,255,255,0.1) transparent",
-      }}
+      className="fixed right-0 z-30 flex flex-col gap-0 overflow-y-auto border-l border-border bg-card text-foreground"
+      style={{ top: 56, width: 180, height: "calc(100vh - 56px)" }}
     >
       <div className="flex flex-col gap-4 px-3 py-4">
 
         {/* Transform */}
         <section>
-          <span className={sectionLabel} style={{ color: "rgba(255,255,255,0.30)" }}>Transform</span>
+          <span className={sectionLabel}>Transform</span>
           <div className="flex flex-col gap-1.5">
             <div className="flex gap-1.5">
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] text-white/25 px-0.5">X</span>
+                <span className="text-[10px] text-muted-foreground/70 px-0.5">X</span>
                 <input
                   type="number"
                   className={numInput}
                   value={Math.round(d.x ?? 0)}
                   onChange={(e) => up({ x: parseFloat(e.target.value) || 0 })}
-                  style={{ border: "0.5px solid rgba(255,255,255,0.10)" }}
                 />
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] text-white/25 px-0.5">Y</span>
+                <span className="text-[10px] text-muted-foreground/70 px-0.5">Y</span>
                 <input
                   type="number"
                   className={numInput}
                   value={Math.round(d.y ?? 0)}
                   onChange={(e) => up({ y: parseFloat(e.target.value) || 0 })}
-                  style={{ border: "0.5px solid rgba(255,255,255,0.10)" }}
                 />
               </div>
             </div>
             {d.width !== undefined && (
               <div className="flex gap-1.5">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] text-white/25 px-0.5">W</span>
+                  <span className="text-[10px] text-muted-foreground/70 px-0.5">W</span>
                   <input
                     type="number"
                     className={numInput}
                     value={Math.round(d.width ?? 0)}
                     onChange={(e) => up({ width: parseFloat(e.target.value) || 0 })}
-                    style={{ border: "0.5px solid rgba(255,255,255,0.10)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] text-white/25 px-0.5">H</span>
+                  <span className="text-[10px] text-muted-foreground/70 px-0.5">H</span>
                   <input
                     type="number"
                     className={numInput}
                     value={Math.round(d.height ?? 0)}
                     onChange={(e) => up({ height: parseFloat(e.target.value) || 0 })}
-                    style={{ border: "0.5px solid rgba(255,255,255,0.10)" }}
                   />
                 </div>
               </div>
             )}
             <div className="flex items-center gap-1.5 mt-0.5">
-              <RotateCw size={12} className="text-white/30 shrink-0" />
+              <RotateCw size={12} className="text-muted-foreground shrink-0" />
               <input
                 type="number"
-                className={cn(numInput, "flex-1")}
-                style={{ width: "100%", border: "0.5px solid rgba(255,255,255,0.10)" }}
+                className={cn(numInput, "flex-1 w-full")}
                 value={Math.round(d.rotation ?? 0)}
                 onChange={(e) => up({ rotation: parseFloat(e.target.value) || 0 })}
               />
-              <span className="text-[11px] text-white/25">°</span>
+              <span className="text-[11px] text-muted-foreground/70">°</span>
             </div>
           </div>
         </section>
 
-        <div className="h-px w-full" style={{ background: "rgba(255,255,255,0.07)" }} />
+        <div className="h-px w-full bg-border" />
 
         {/* Style */}
         {!isText && (
           <section>
-            <span className={sectionLabel} style={{ color: "rgba(255,255,255,0.30)" }}>Style</span>
+            <span className={sectionLabel}>Style</span>
             <div className="flex flex-col gap-2">
               <div>
-                <span className="text-[10px] text-white/30 mb-1.5 block">Stroke</span>
+                <span className="text-[10px] text-muted-foreground mb-1.5 block">Stroke</span>
                 <div className="grid grid-cols-4 gap-1">
                   {STROKE_COLORS.map((c) => (
                     <button
@@ -179,7 +166,7 @@ export function RightPanel() {
               </div>
               {hasFill && (
                 <div>
-                  <span className="text-[10px] text-white/30 mb-1.5 block">Fill</span>
+                  <span className="text-[10px] text-muted-foreground mb-1.5 block">Fill</span>
                   <div className="grid grid-cols-4 gap-1">
                     {["transparent", "#6C63FF", "#3ECFCF", "#F0997B", "#FAC775", "#97C459", "#D4537E", "#F1F0E8"].map((c) => (
                       <button
@@ -209,12 +196,8 @@ export function RightPanel() {
                     key={value}
                     onClick={() => { setStrokeWidth(value); up({ strokeWidth: value }); }}
                     className={cn("flex flex-1 flex-col items-center gap-1 rounded-md py-1.5 text-[10px] transition-colors",
-                      strokeWidth === value ? "text-[#6C63FF]" : "text-white/35 hover:text-white/60"
+                      strokeWidth === value ? "border-primary bg-primary/15 text-primary" : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
                     )}
-                    style={{
-                      background: strokeWidth === value ? "rgba(108,99,255,0.15)" : "rgba(255,255,255,0.04)",
-                      border: strokeWidth === value ? "0.5px solid #6C63FF" : "0.5px solid rgba(255,255,255,0.1)",
-                    }}
                   >
                     <span className="block rounded-full" style={{ width: 16, height: value, background: strokeWidth === value ? "#6C63FF" : "rgba(255,255,255,0.3)" }} />
                     {label}
@@ -228,15 +211,15 @@ export function RightPanel() {
         {/* Text settings */}
         {isText && (
           <section>
-            <span className={sectionLabel} style={{ color: "rgba(255,255,255,0.30)" }}>Text</span>
+            <span className={sectionLabel}>Text</span>
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-white/30 w-12 shrink-0">Size</span>
+                <span className="text-[10px] text-muted-foreground w-12 shrink-0">Size</span>
                 <input
                   type="number"
                   min={10} max={72}
                   className={cn(numInput, "flex-1")}
-                  style={{ width: "100%", border: "0.5px solid rgba(255,255,255,0.10)" }}
+                  className="w-full"
                   value={d.fontSize ?? 16}
                   onChange={(e) => up({ fontSize: parseInt(e.target.value) || 16 })}
                 />
@@ -254,13 +237,13 @@ export function RightPanel() {
           </section>
         )}
 
-        <div className="h-px w-full" style={{ background: "rgba(255,255,255,0.07)" }} />
+        <div className="h-px w-full bg-border" />
 
         {/* Opacity */}
         <section>
           <div className="flex items-center justify-between mb-2">
-            <span className={sectionLabel} style={{ color: "rgba(255,255,255,0.30)", margin: 0 }}>Opacity</span>
-            <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.40)" }}>
+            <span className={cn(sectionLabel, "m-0")}>Opacity</span>
+            <span className="text-[11px] text-muted-foreground">
               {Math.round((d.opacity ?? 1) * 100)}%
             </span>
           </div>
@@ -273,11 +256,11 @@ export function RightPanel() {
           />
         </section>
 
-        <div className="h-px w-full" style={{ background: "rgba(255,255,255,0.07)" }} />
+        <div className="h-px w-full bg-border" />
 
         {/* Layer order */}
         <section>
-          <span className={sectionLabel} style={{ color: "rgba(255,255,255,0.30)" }}>Layer</span>
+          <span className={sectionLabel}>Layer</span>
           <div className="flex gap-1">
             <button className={ghostBtn} title="Bring to front"  onClick={() => reorder("front")}><ArrowUpToLine size={13} /></button>
             <button className={ghostBtn} title="Move up"         onClick={() => reorder("up")}><ArrowUp size={13} /></button>
@@ -286,13 +269,13 @@ export function RightPanel() {
           </div>
         </section>
 
-        <div className="h-px w-full" style={{ background: "rgba(255,255,255,0.07)" }} />
+        <div className="h-px w-full bg-border" />
 
         {/* Actions */}
         <section className="flex flex-col gap-1">
           <button
             onClick={duplicate}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] text-white/60 hover:bg-white/6 hover:text-white transition-colors"
+            className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <Copy size={13} /> Duplicate
           </button>

@@ -14,7 +14,26 @@ import { registerHandlers } from './socket/handlers'
 
 const app = express()
 
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }))
+const allowedOrigins = new Set(
+  [
+    process.env.CLIENT_URL,
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+  ].filter((url): url is string => Boolean(url))
+)
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true)
+        return
+      }
+      callback(new Error('Not allowed by CORS'))
+    },
+    credentials: true,
+  })
+)
 app.use(express.json())
 app.use(apiRouter)
 
@@ -27,7 +46,7 @@ const io = new Server<
   SocketData
 >(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: [...allowedOrigins],
     credentials: true,
   },
 })

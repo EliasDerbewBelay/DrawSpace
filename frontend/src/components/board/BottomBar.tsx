@@ -5,6 +5,7 @@ import type Konva from "konva";
 import { cn } from "@/lib/utils";
 import { useCanvasStore } from "@/store/canvasStore";
 import { getEmitters } from "@/hooks/useSync";
+import { boardBarBtn } from "@/lib/board-ui";
 
 interface BottomBarProps {
   stageRef: React.RefObject<Konva.Stage | null>;
@@ -15,14 +16,7 @@ const ZOOM_MIN  = 0.25;
 const ZOOM_MAX  = 4;
 const ZOOM_STEP = 0.25;
 
-const btn = cn(
-  "flex items-center justify-center w-7 h-7 rounded-md transition-all duration-100",
-  "text-white/50 hover:text-white hover:bg-white/6 active:scale-95",
-  "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:active:scale-100"
-);
-
 export function BottomBar({ stageRef, boardName = "board" }: BottomBarProps) {
-  /* BUG-11: stageScale lifted to canvasStore so ContextMenu zoom stays in sync */
   const { history, historyIndex, showGrid, setShowGrid, stageScale, setStageScale } = useCanvasStore();
 
   const canUndo = historyIndex >= 0;
@@ -74,68 +68,51 @@ export function BottomBar({ stageRef, boardName = "board" }: BottomBarProps) {
   }
 
   return (
-    <div
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 z-40"
-      style={{
-        padding: "6px 14px",
-        background: "rgba(22,25,32,0.88)",
-        backdropFilter: "blur(10px)",
-        border: "0.5px solid rgba(255,255,255,0.08)",
-        borderRadius: 12,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
-      }}
-    >
-      {/* Zoom group */}
-      <div
-        className="flex items-center rounded-lg"
-        style={{ background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.08)" }}
-      >
-        <button className={btn} onClick={() => applyZoom(stageScale - ZOOM_STEP)} disabled={stageScale <= ZOOM_MIN} title="Zoom out">
+    <div className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-border bg-card/90 px-3.5 py-1.5 shadow-lg backdrop-blur-md">
+      <div className="flex items-center rounded-lg border border-border bg-muted/50">
+        <button className={boardBarBtn} onClick={() => applyZoom(stageScale - ZOOM_STEP)} disabled={stageScale <= ZOOM_MIN} title="Zoom out">
           <Minus size={13} />
         </button>
         <button
-          className="min-w-[44px] text-center text-[12px] font-mono tabular-nums transition-colors hover:text-white/80"
-          style={{ color: "rgba(255,255,255,0.50)" }}
+          className="min-w-[44px] text-center font-mono text-[12px] tabular-nums text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => applyZoom(1)}
           title="Reset zoom (click)"
         >
           {Math.round(stageScale * 100)}%
         </button>
-        <button className={btn} onClick={() => applyZoom(stageScale + ZOOM_STEP)} disabled={stageScale >= ZOOM_MAX} title="Zoom in">
+        <button className={boardBarBtn} onClick={() => applyZoom(stageScale + ZOOM_STEP)} disabled={stageScale >= ZOOM_MAX} title="Zoom in">
           <Plus size={13} />
         </button>
       </div>
 
-      <div className="h-5 w-px" style={{ background: "rgba(255,255,255,0.10)" }} />
+      <div className="h-5 w-px bg-border" />
 
-      {/* Undo / Redo */}
       <div className="flex items-center gap-0.5">
-        <button className={btn} onClick={handleUndo} disabled={!canUndo} title="Undo (⌘Z)">
+        <button className={boardBarBtn} onClick={handleUndo} disabled={!canUndo} title="Undo (⌘Z)">
           <Undo2 size={14} />
         </button>
-        <span className="text-[11px] px-0.5" style={{ color: "rgba(255,255,255,0.25)" }}>Undo</span>
-        <button className={btn} onClick={handleRedo} disabled={!canRedo} title="Redo (⌘⇧Z)">
+        <span className="px-0.5 text-[11px] text-muted-foreground/60">Undo</span>
+        <button className={boardBarBtn} onClick={handleRedo} disabled={!canRedo} title="Redo (⌘⇧Z)">
           <Redo2 size={14} />
         </button>
-        <span className="text-[11px] px-0.5" style={{ color: "rgba(255,255,255,0.25)" }}>Redo</span>
+        <span className="px-0.5 text-[11px] text-muted-foreground/60">Redo</span>
       </div>
 
-      <div className="h-5 w-px" style={{ background: "rgba(255,255,255,0.10)" }} />
+      <div className="h-5 w-px bg-border" />
 
-      {/* Canvas tools */}
       <div className="flex items-center gap-0.5">
         <button
-          className={cn(btn, showGrid && "text-[#6C63FF] hover:text-[#7C74FF]")}
+          className={cn(boardBarBtn, showGrid && "text-primary hover:text-primary")}
           onClick={() => setShowGrid(!showGrid)}
           title={showGrid ? "Hide grid" : "Show grid"}
         >
           <Grid3X3 size={14} />
         </button>
-        <button className={btn} onClick={fitScreen} title="Fit to screen">
+        <button className={boardBarBtn} onClick={fitScreen} title="Fit to screen">
           <Maximize2 size={14} />
         </button>
         <button
-          className={cn(btn, "gap-1.5 px-2 w-auto text-[12px]")}
+          className={cn(boardBarBtn, "h-7 w-auto gap-1.5 px-2 text-[12px]")}
           onClick={exportPng}
           title="Export PNG (2×)"
         >

@@ -44,7 +44,7 @@ export function CreateBoardModal({ isOpen, onClose, onCreate }: Props) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open && !loading) onClose(); }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" />
+        <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" />
         <Dialog.Content
           className="fixed left-1/2 top-1/2 z-[60] w-full max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 outline-none"
           style={{ maxWidth: 440 }}
@@ -52,32 +52,17 @@ export function CreateBoardModal({ isOpen, onClose, onCreate }: Props) {
         >
           <form
             onSubmit={(e) => void handleSubmit(e)}
-            className="overflow-hidden rounded-2xl shadow-2xl"
-            style={{
-              background: "#1E2028",
-              border: "0.5px solid rgba(255,255,255,0.08)",
-              boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-            }}
+            className="overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl"
           >
-            {/* header accent */}
-            <div
-              className="flex items-center gap-3 px-6 pt-6 pb-4"
-              style={{ borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}
-            >
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                style={{ background: "rgba(108,99,255,0.15)" }}
-              >
-                <LayoutTemplate size={18} style={{ color: "#6C63FF" }} />
+            <div className="flex items-center gap-3 border-b border-border px-6 pb-4 pt-6">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15">
+                <LayoutTemplate size={18} className="text-primary" />
               </div>
               <div>
-                <Dialog.Title className="text-[17px] font-medium text-white">
+                <Dialog.Title className="text-[17px] font-medium text-foreground">
                   Create a new board
                 </Dialog.Title>
-                <Dialog.Description
-                  className="mt-0.5 text-[13px]"
-                  style={{ color: "rgba(255,255,255,0.45)" }}
-                >
+                <Dialog.Description className="mt-0.5 text-[13px] text-muted-foreground">
                   Give your whiteboard a name to get started.
                 </Dialog.Description>
               </div>
@@ -86,8 +71,7 @@ export function CreateBoardModal({ isOpen, onClose, onCreate }: Props) {
             <div className="px-6 py-5">
               <label
                 htmlFor="board-name"
-                className="mb-2 block text-[11px] font-semibold uppercase tracking-widest"
-                style={{ color: "rgba(255,255,255,0.35)" }}
+                className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground"
               >
                 Board name
               </label>
@@ -98,43 +82,22 @@ export function CreateBoardModal({ isOpen, onClose, onCreate }: Props) {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Product brainstorm, Sprint planning…"
                 disabled={loading}
-                className="w-full rounded-lg px-3.5 py-2.5 text-[14px] text-white outline-none transition-all disabled:opacity-50"
-                style={{
-                  background: "#0F1117",
-                  border: "0.5px solid rgba(255,255,255,0.10)",
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "#6C63FF";
-                  e.currentTarget.style.boxShadow = "0 0 0 2px rgba(108,99,255,0.2)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.10)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
+                className="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-[14px] text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/25 disabled:opacity-50"
                 onKeyDown={(e) => {
                   if (e.key === "Escape" && !loading) onClose();
                 }}
               />
               {error && (
-                <p className="mt-2 text-[12px]" style={{ color: "#F87171" }}>
-                  {error}
-                </p>
+                <p className="mt-2 text-[12px] text-destructive">{error}</p>
               )}
             </div>
 
-            <div
-              className="flex items-center justify-end gap-2 px-6 py-4"
-              style={{
-                background: "rgba(255,255,255,0.02)",
-                borderTop: "0.5px solid rgba(255,255,255,0.07)",
-              }}
-            >
+            <div className="flex items-center justify-end gap-2 border-t border-border bg-muted/30 px-6 py-4">
               <button
                 type="button"
                 disabled={loading}
                 onClick={onClose}
-                className="h-9 rounded-lg px-4 text-[13px] transition-colors disabled:opacity-40"
-                style={{ color: "rgba(255,255,255,0.55)" }}
+                className="h-9 rounded-lg px-4 text-[13px] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
               >
                 Cancel
               </button>
@@ -142,9 +105,8 @@ export function CreateBoardModal({ isOpen, onClose, onCreate }: Props) {
                 type="submit"
                 disabled={loading}
                 className={cn(
-                  "flex h-9 items-center gap-2 rounded-lg px-5 text-[13px] font-medium text-white transition-all active:scale-[0.98] disabled:opacity-60"
+                  "flex h-9 items-center gap-2 rounded-lg bg-primary px-5 text-[13px] font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
                 )}
-                style={{ background: "#6C63FF" }}
               >
                 {loading ? (
                   <>

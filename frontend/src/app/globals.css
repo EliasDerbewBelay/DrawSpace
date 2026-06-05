@@ -40,6 +40,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-canvas: var(--canvas-bg);
+  --color-brand: var(--brand);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -50,14 +52,22 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.985 0.002 270);
+  --foreground: oklch(0.18 0.01 270);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.18 0.01 270);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --popover-foreground: oklch(0.18 0 0);
+  --primary: oklch(0.58 0.22 285);
+  --primary-foreground: oklch(0.99 0 0);
+  --brand: #6C63FF;
+  --brand-hover: #7C74FF;
+  --success: #5DCAA5;
+  --canvas-bg: oklch(0.965 0.008 270);
+  --canvas-grid: oklch(0 0 0 / 0.055);
+  --canvas-hint: oklch(0 0 0 / 0.14);
+  --scrollbar-thumb: oklch(0 0 0 / 0.12);
+  --scrollbar-thumb-hover: oklch(0 0 0 / 0.22);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -85,14 +95,22 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --background: oklch(0.13 0.01 270);
+  --foreground: oklch(0.93 0.01 90);
+  --card: oklch(0.18 0.012 270);
+  --card-foreground: oklch(0.93 0.01 90);
+  --popover: oklch(0.2 0.012 270);
+  --popover-foreground: oklch(0.93 0.01 90);
+  --primary: oklch(0.62 0.2 285);
+  --primary-foreground: oklch(0.99 0 0);
+  --brand: #6C63FF;
+  --brand-hover: #7C74FF;
+  --success: #5DCAA5;
+  --canvas-bg: oklch(0.13 0.01 270);
+  --canvas-grid: oklch(1 0 0 / 0.08);
+  --canvas-hint: oklch(1 0 0 / 0.15);
+  --scrollbar-thumb: oklch(1 0 0 / 0.1);
+  --scrollbar-thumb-hover: oklch(1 0 0 / 0.2);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -127,5 +145,19 @@
   }
   html {
     @apply font-sans;
+  }
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
   }
 }

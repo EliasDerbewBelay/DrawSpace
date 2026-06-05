@@ -19,6 +19,9 @@ export interface KonvaData {
   stroke?: string
   strokeWidth?: number
   fontSize?: number
+  fontStyle?: string
+  textDecoration?: string
+  align?: 'left' | 'center' | 'right'
   rotation?: number
   opacity?: number
 }

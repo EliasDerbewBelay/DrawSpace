@@ -10,8 +10,7 @@ import { cn } from "@/lib/utils";
 import { useCanvasStore } from "@/store/canvasStore";
 import type { ToolType } from "@/types/canvas";
 import { ColorPicker } from "./ColorPicker";
-
-/* ─── tool definitions ───────────────────────────────────────── */
+import { boardToolBtn } from "@/lib/board-ui";
 
 const TOOLS: { type: ToolType; icon: React.ReactNode; label: string; key: string }[] = [
   { type: "select", icon: <MousePointer2 size={15} />, label: "Select",     key: "V" },
@@ -30,12 +29,9 @@ const STROKE_WIDTHS = [
   { value: 8, size: 15 },
 ] as const;
 
-/* ─── component ──────────────────────────────────────────────── */
-
 export function LeftToolbar() {
   const { activeTool, strokeColor, strokeWidth, setTool, setStrokeWidth } = useCanvasStore();
 
-  /* keyboard shortcuts */
   useEffect(() => {
     const map: Record<string, ToolType> = {
       v: "select", p: "pen", r: "rect", c: "circle",
@@ -54,51 +50,31 @@ export function LeftToolbar() {
 
   return (
     <div
-      className="fixed left-0 flex flex-col items-center py-2.5 gap-0.5 z-30"
-      style={{
-        top: 56,
-        width: 44,
-        height: "calc(100vh - 56px)",
-        background: "rgba(22,25,32,0.92)",
-        borderRight: "0.5px solid rgba(255,255,255,0.07)",
-        backdropFilter: "blur(8px)",
-      }}
+      className="fixed left-0 z-30 flex flex-col items-center gap-0.5 border-r border-border bg-card/90 py-2.5 backdrop-blur-md"
+      style={{ top: 56, width: 44, height: "calc(100vh - 56px)" }}
     >
-      {/* tool buttons */}
       {TOOLS.map(({ type, icon, label, key }) => (
         <button
           key={type}
           title={`${label} (${key})`}
           onClick={() => setTool(type)}
-          className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-[7px] transition-all duration-100 active:scale-95",
-            activeTool === type
-              ? "bg-[#6C63FF] text-white shadow-[0_0_0_1px_rgba(108,99,255,0.5)]"
-              : "text-white/35 hover:bg-white/6 hover:text-white/70"
-          )}
+          className={boardToolBtn(activeTool === type)}
         >
           {icon}
         </button>
       ))}
 
-      {/* separator */}
-      <div className="my-2 mx-auto w-6 h-px" style={{ background: "rgba(255,255,255,0.1)" }} />
+      <div className="mx-auto my-2 h-px w-6 bg-border" />
 
-      {/* color dot → Popover */}
       <Popover.Root>
         <Popover.Trigger asChild>
           <button
             title="Colors"
-            className="flex h-8 w-8 items-center justify-center rounded-[7px] hover:bg-white/6 transition-all duration-100 active:scale-95"
+            className="flex h-8 w-8 items-center justify-center rounded-[7px] transition-all duration-100 hover:bg-muted active:scale-95"
           >
             <span
-              className="block rounded-full"
-              style={{
-                width: 18,
-                height: 18,
-                background: strokeColor,
-                border: "2px solid rgba(255,255,255,0.25)",
-              }}
+              className="block rounded-full border-2 border-border"
+              style={{ width: 18, height: 18, background: strokeColor }}
             />
           </button>
         </Popover.Trigger>
@@ -109,24 +85,25 @@ export function LeftToolbar() {
         </Popover.Portal>
       </Popover.Root>
 
-      {/* stroke width dots */}
-      <div className="flex flex-col items-center gap-2 mt-1">
+      <div className="mt-1 flex flex-col items-center gap-2">
         {STROKE_WIDTHS.map(({ value, size }) => (
           <button
             key={value}
             title={`Stroke ${value}px`}
             onClick={() => setStrokeWidth(value)}
-            className="flex h-7 w-8 items-center justify-center rounded transition-all active:scale-90"
-            style={{ background: strokeWidth === value ? "rgba(108,99,255,0.15)" : "transparent" }}
+            className={cn(
+              "flex h-7 w-8 items-center justify-center rounded transition-all active:scale-90",
+              strokeWidth === value && "bg-primary/15"
+            )}
           >
             <span
               className="block rounded-full"
               style={{
                 width: size,
                 height: size,
-                background: strokeWidth === value ? "#6C63FF" : strokeColor,
+                background: strokeWidth === value ? "var(--brand)" : strokeColor,
                 opacity: strokeWidth === value ? 1 : 0.4,
-                outline: strokeWidth === value ? "2px solid white" : "none",
+                outline: strokeWidth === value ? "2px solid var(--foreground)" : "none",
                 outlineOffset: 1,
               }}
             />

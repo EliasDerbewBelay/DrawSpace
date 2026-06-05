@@ -6,6 +6,7 @@ import {
   Trash2, Clipboard, BoxSelect, ZoomIn, ZoomOut, Maximize2, Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { boardMenuItem } from "@/lib/board-ui";
 import { useCanvasStore } from "@/store/canvasStore";
 import { getEmitters } from "@/hooks/useSync";
 import type { CanvasElement } from "@/types/canvas";
@@ -18,10 +19,8 @@ interface ContextMenuProps {
   stageRef:   React.RefObject<Konva.Stage | null>;
 }
 
-const item = cn(
-  "flex items-center gap-2.5 rounded-[6px] px-2.5 py-[7px] text-[13px] cursor-pointer",
-  "text-white/70 hover:bg-white/6 hover:text-white transition-colors"
-);
+const item = boardMenuItem;
+const iconCls = "shrink-0 text-muted-foreground";
 
 export function ContextMenu({ position, elementId, onClose, stageRef }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -133,18 +132,15 @@ export function ContextMenu({ position, elementId, onClose, stageRef }: ContextM
     a.click();
   }
 
-  const sep = <div className="my-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />;
+  const sep = <div className="my-1 h-px bg-border" />;
 
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[180px] rounded-[10px] p-1"
+      className="fixed z-50 min-w-[180px] rounded-[10px] border border-border bg-popover p-1 text-popover-foreground shadow-xl"
       style={{
         left,
         top,
-        background: "#1E2028",
-        border: "0.5px solid rgba(255,255,255,0.08)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
         animation: "ctxFadeIn 0.1s ease forwards",
       }}
       onContextMenu={(e) => e.preventDefault()}
@@ -159,46 +155,46 @@ export function ContextMenu({ position, elementId, onClose, stageRef }: ContextM
       {elementId ? (
         <>
           <button className={item} onClick={() => run(select)}>
-            <MousePointer2 size={14} className="text-white/40 shrink-0" /> Select
+            <MousePointer2 size={14} className={iconCls} /> Select
           </button>
           <button className={item} onClick={() => run(duplicate)}>
-            <Copy size={14} className="text-white/40 shrink-0" /> Duplicate
+            <Copy size={14} className={iconCls} /> Duplicate
           </button>
           <button className={item} onClick={() => run(() => reorder("front"))}>
-            <ArrowUpToLine size={14} className="text-white/40 shrink-0" /> Bring to front
+            <ArrowUpToLine size={14} className={iconCls} /> Bring to front
           </button>
           <button className={item} onClick={() => run(() => reorder("back"))}>
-            <ArrowDownToLine size={14} className="text-white/40 shrink-0" /> Send to back
+            <ArrowDownToLine size={14} className={iconCls} /> Send to back
           </button>
           {sep}
           <button
-            className={cn(item, "text-[#F87171] hover:text-[#F87171]")}
+            className={cn(item, "text-destructive hover:text-destructive")}
             onClick={() => run(deleteEl)}
           >
-            <Trash2 size={14} style={{ color: "#F87171" }} className="shrink-0" /> Delete
+            <Trash2 size={14} className="shrink-0 text-destructive" /> Delete
           </button>
         </>
       ) : (
         <>
           <button className={item} onClick={() => run(selectAll)}>
-            <BoxSelect size={14} className="text-white/40 shrink-0" /> Select all
+            <BoxSelect size={14} className={iconCls} /> Select all
           </button>
           <button className={item} onClick={() => run(() => zoom(0.25))}>
-            <ZoomIn size={14} className="text-white/40 shrink-0" /> Zoom in
+            <ZoomIn size={14} className={iconCls} /> Zoom in
           </button>
           <button className={item} onClick={() => run(() => zoom(-0.25))}>
-            <ZoomOut size={14} className="text-white/40 shrink-0" /> Zoom out
+            <ZoomOut size={14} className={iconCls} /> Zoom out
           </button>
           <button className={item} onClick={() => run(resetView)}>
-            <Maximize2 size={14} className="text-white/40 shrink-0" /> Reset view
+            <Maximize2 size={14} className={iconCls} /> Reset view
           </button>
           {sep}
           <button className={item} onClick={() => run(exportPng)}>
-            <Download size={14} className="text-white/40 shrink-0" /> Export PNG
+            <Download size={14} className={iconCls} /> Export PNG
           </button>
           {sep}
           <button className={item} onClick={() => run(() => {})}>
-            <Clipboard size={14} className="text-white/40 shrink-0" /> Paste
+            <Clipboard size={14} className={iconCls} /> Paste
           </button>
         </>
       )}
