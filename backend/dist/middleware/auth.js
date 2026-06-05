@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireAuth = requireAuth;
 const backend_1 = require("@clerk/backend");
+const users_1 = require("../lib/users");
 async function requireAuth(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -14,6 +15,7 @@ async function requireAuth(req, res, next) {
             secretKey: process.env.CLERK_SECRET_KEY,
         });
         req.userId = payload.sub;
+        await (0, users_1.ensureUser)(payload.sub);
         next();
     }
     catch {

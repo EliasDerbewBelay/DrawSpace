@@ -1,5 +1,6 @@
 import type { Server, Socket } from 'socket.io'
 import { prisma, type Prisma } from '../lib/prisma'
+import { ensureUser } from '../lib/users'
 import {
   addBoardPresence,
   clearBoardCursor,
@@ -62,6 +63,7 @@ export function registerHandlers(io: AppServer, socket: AppSocket, userId: strin
       await socket.join(boardId)
       console.log(`${userId} joined board ${boardId}`)
 
+      await ensureUser(userId)
       await addBoardPresence(boardId, userId)
 
       const elements = await prisma.element.findMany({

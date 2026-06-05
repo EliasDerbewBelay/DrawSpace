@@ -2,25 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const prisma_1 = require("../lib/prisma");
+const users_1 = require("../lib/users");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 router.use(auth_1.requireAuth);
-/**
- * Ensure a minimal User record exists for a given clerkId so FK constraints
- * on Board.ownerId are satisfied. A proper profile sync happens via webhook
- * in a later phase — this keeps the schema constraints intact for Phase 2.
- */
-async function ensureUser(clerkId) {
-    await prisma_1.prisma.user.upsert({
-        where: { clerkId },
-        create: {
-            clerkId,
-            name: clerkId,
-            email: `${clerkId}@clerk.local`,
-        },
-        update: {},
-    });
-}
 async function fetchBoardWithRelations(id) {
     const result = await prisma_1.prisma.board.findUnique({
         where: { id },
@@ -191,7 +176,7 @@ router.get('/:boardId', async (req, res) => {
         }
         const isMember = board.members.some((m) => m.userId === req.userId);
         if (!isMember) {
-            await ensureUser(req.userId);
+            await (0, users_1.ensureUser)(req.userId);
             await prisma_1.prisma.boardMember.create({
                 data: { boardId, userId: req.userId, role: 'editor' },
             });

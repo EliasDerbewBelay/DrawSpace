@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerHandlers = registerHandlers;
 const prisma_1 = require("../lib/prisma");
+const users_1 = require("../lib/users");
 const liveState_1 = require("../lib/liveState");
 function elementToStored(el) {
     return {
@@ -27,6 +28,7 @@ function registerHandlers(io, socket, userId) {
         void (async () => {
             await socket.join(boardId);
             console.log(`${userId} joined board ${boardId}`);
+            await (0, users_1.ensureUser)(userId);
             await (0, liveState_1.addBoardPresence)(boardId, userId);
             const elements = await prisma_1.prisma.element.findMany({
                 where: { boardId },

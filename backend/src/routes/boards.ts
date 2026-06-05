@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import type { BoardMember, Element, Prisma } from '../generated/prisma/client'
 import { prisma } from '../lib/prisma'
+import { ensureUser } from '../lib/users'
 import { requireAuth } from '../middleware/auth'
 
 // Derive the transaction client type from the prisma singleton
@@ -21,23 +22,6 @@ interface BoardWithRelations {
 
 const router = Router()
 router.use(requireAuth)
-
-/**
- * Ensure a minimal User record exists for a given clerkId so FK constraints
- * on Board.ownerId are satisfied. A proper profile sync happens via webhook
- * in a later phase — this keeps the schema constraints intact for Phase 2.
- */
-async function ensureUser(clerkId: string): Promise<void> {
-  await prisma.user.upsert({
-    where: { clerkId },
-    create: {
-      clerkId,
-      name: clerkId,
-      email: `${clerkId}@clerk.local`,
-    },
-    update: {},
-  })
-}
 
 async function fetchBoardWithRelations(id: string): Promise<BoardWithRelations | null> {
   const result = await prisma.board.findUnique({
