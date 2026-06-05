@@ -152,7 +152,7 @@ function AnimatedPrice({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
+        transition={{ duration: 0.2 }}
         className={className}
       >
         {value}
@@ -191,7 +191,7 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
+            transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
             <p className="pb-4 text-sm text-muted-foreground leading-relaxed">{a}</p>
@@ -354,7 +354,7 @@ export default function PricingPage() {
                 key={plan.id}
                 initial={{ opacity: 0, y: 28 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.1, duration: 0.5, ease: "easeOut" }}
+                transition={{ delay: 0.1 + i * 0.1, duration: 0.5 }}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
                 className={cn(
                   "relative flex flex-col rounded-2xl border p-6 shadow-sm",

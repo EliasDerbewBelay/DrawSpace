@@ -115,7 +115,6 @@ export default function SignInPage() {
 
         <SignIn
           appearance={isDark ? darkAppearance : lightAppearance}
-          redirectUrl="/dashboard"
           signUpUrl="/sign-up"
         />
       </div>

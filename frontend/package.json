@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@clerk/nextjs": "^7.4.3",
     "@clerk/ui": "^1.15.0",

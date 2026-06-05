@@ -24,7 +24,7 @@ const fadeUp = {
   show: (i = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, delay: i * 0.1, ease: "easeOut" },
+    transition: { duration: 0.5, delay: i * 0.1 },
   }),
 };
 
@@ -246,7 +246,7 @@ export default function Home() {
                     key={note.id}
                     initial={{ opacity: 0, scale: 0.85, rotate: -4 }}
                     animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                    transition={{ delay: 0.3 + i * 0.15, duration: 0.4, ease: "easeOut" }}
+                    transition={{ delay: 0.3 + i * 0.15, duration: 0.4 }}
                     style={{ left: note.x, top: note.y }}
                     className={`absolute w-36 rounded-md px-3 py-2.5 text-[11px] font-medium text-zinc-900 shadow-md ${note.color}`}
                   >
@@ -268,7 +268,7 @@ export default function Home() {
                     strokeLinecap="round"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ delay: 0.9, duration: 0.8, ease: "easeInOut" }}
+                    transition={{ delay: 0.9, duration: 0.8 }}
                   />
                   <motion.path
                     d="M 200 320 C 260 290, 310 310, 380 360"
@@ -278,7 +278,7 @@ export default function Home() {
                     strokeLinecap="round"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ delay: 1.1, duration: 0.8, ease: "easeInOut" }}
+                    transition={{ delay: 1.1, duration: 0.8 }}
                   />
                 </svg>
 

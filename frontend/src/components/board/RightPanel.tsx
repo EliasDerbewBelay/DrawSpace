@@ -218,8 +218,7 @@ export function RightPanel() {
                 <input
                   type="number"
                   min={10} max={72}
-                  className={cn(numInput, "flex-1")}
-                  className="w-full"
+                  className={cn(numInput, "flex-1 w-full")}
                   value={d.fontSize ?? 16}
                   onChange={(e) => up({ fontSize: parseInt(e.target.value) || 16 })}
                 />

@@ -1,5 +1,6 @@
 import { io, type Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from '@/types/socket'
+import { getSocketUrl } from '@/lib/env'
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
@@ -7,10 +8,10 @@ let socket: AppSocket | null = null
 
 export function getSocket(): AppSocket {
   if (!socket) {
-    socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
+    socket = io(getSocketUrl(), {
       autoConnect: false,
       withCredentials: true,
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
     })
   }
   return socket

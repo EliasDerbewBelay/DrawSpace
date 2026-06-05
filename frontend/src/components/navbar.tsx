@@ -18,7 +18,7 @@ export function Navbar() {
     <motion.header
       initial={{ y: -16, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: 0.4 }}
       className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md"
     >
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 md:px-6">
@@ -67,7 +67,7 @@ export function Navbar() {
                 Dashboard
               </Button>
             </Link>
-            <UserButton afterSignOutUrl="/" />
+            <UserButton />
           </Show>
         </div>
       </div>

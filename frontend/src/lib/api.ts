@@ -1,3 +1,4 @@
+import { getClientApiBaseUrl } from '@/lib/env'
 import type { Board } from '@/types/board'
 import type { BoardSettings } from '@/types/boardSettings'
 import type { CanvasElement } from '@/types/canvas'
@@ -7,12 +8,6 @@ export type PatchBoardPayload = {
   settings?: Partial<BoardSettings>
 }
 
-function getApiBaseUrl(): string {
-  // Browser requests go through Next.js rewrites (same origin, no CORS).
-  if (typeof window !== 'undefined') return ''
-  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
-}
-
 async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -20,7 +15,7 @@ async function apiFetch<T>(
 ): Promise<T> {
   let res: Response
   try {
-    res = await fetch(`${getApiBaseUrl()}${path}`, {
+    res = await fetch(`${getClientApiBaseUrl()}${path}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -30,7 +25,9 @@ async function apiFetch<T>(
     })
   } catch {
     throw new Error(
-      'Cannot reach the DrawSpace server. Make sure the backend is running (pnpm dev in /backend).'
+      process.env.NODE_ENV === 'production'
+        ? 'Cannot reach the DrawSpace API. Check NEXT_PUBLIC_API_URL and that the backend is deployed.'
+        : 'Cannot reach the DrawSpace server. Make sure the backend is running (pnpm dev in /backend).'
     )
   }
 

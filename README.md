@@ -51,16 +51,19 @@ Root directory `backend`, build `npm install && npm run build`, start `npm run d
 | `NODE_ENV` | Yes | `production` |
 | `PORT` | Auto | Set by Render |
 
-### Frontend (Vercel / etc.)
+### Deploy frontend on Vercel
 
-Point the frontend at your Render API:
+1. Import the GitHub repo → set **Root Directory** to `frontend`.
+2. Copy env vars from `frontend/.env.example` into Vercel **Settings → Environment Variables**.
+3. Required:
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+   - `NEXT_PUBLIC_API_URL` — Render API URL (no trailing slash)
+   - `NEXT_PUBLIC_SOCKET_URL` — same as API URL (Socket.io connects directly; Next.js rewrites do not proxy WebSockets)
+4. In Clerk → **Domains**, add your Vercel URL (e.g. `https://your-app.vercel.app`).
+5. On Render, set `CLIENT_URL` to the Vercel URL and redeploy the backend.
+6. Deploy. REST calls use same-origin `/api/*` rewrites; live cursors use `NEXT_PUBLIC_SOCKET_URL`.
 
-```
-NEXT_PUBLIC_API_URL=https://your-api.onrender.com
-NEXT_PUBLIC_SOCKET_URL=https://your-api.onrender.com
-```
-
-Redeploy the frontend after changing these.
+Redeploy both services after changing URLs.
 
 ### Local development
 
