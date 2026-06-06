@@ -3,19 +3,24 @@ function normalizeOrigin(url: string): string {
   return url.replace(/\/$/, '')
 }
 
+/** Comma-separated origins, e.g. http://localhost:3000,https://app.example.com */
+function parseOrigins(value: string | undefined): string[] {
+  if (!value?.trim()) return []
+  return value
+    .split(',')
+    .map((origin) => normalizeOrigin(origin.trim()))
+    .filter(Boolean)
+}
+
 export function getAllowedOrigins(): Set<string> {
   const origins = new Set<string>()
 
-  if (process.env.CLIENT_URL) {
-    origins.add(normalizeOrigin(process.env.CLIENT_URL))
+  for (const origin of parseOrigins(process.env.CLIENT_URL)) {
+    origins.add(origin)
   }
 
-  const extra = process.env.ALLOWED_ORIGINS
-  if (extra) {
-    for (const origin of extra.split(',')) {
-      const trimmed = normalizeOrigin(origin.trim())
-      if (trimmed) origins.add(trimmed)
-    }
+  for (const origin of parseOrigins(process.env.ALLOWED_ORIGINS)) {
+    origins.add(origin)
   }
 
   if (process.env.NODE_ENV !== 'production') {

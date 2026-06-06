@@ -30,7 +30,7 @@ SSL is applied automatically for `supabase.co` hosts.
 3. Set **manual** env vars on **drawspace-api**:
    - `DATABASE_URL` — Supabase connection URI
    - `CLERK_SECRET_KEY` — Clerk dashboard
-   - `CLIENT_URL` — frontend URL (e.g. `https://your-app.vercel.app`)
+   - `CLIENT_URL` — comma-separated frontend origins (e.g. `http://localhost:3000,https://drawspace-kbzi.onrender.com`)
    - `REDIS_URL` — Upstash `rediss://...` URL
 4. Deploy. Migrations run on start (`prisma migrate deploy`).
 5. Verify: `https://your-api.onrender.com/api/health` → `{ "ok": true, "db": true, "redis": true }`
@@ -45,9 +45,9 @@ Root directory `backend`, build `npm install && npm run build`, start `npm run d
 |----------|----------|-------|
 | `DATABASE_URL` | Yes | Supabase PostgreSQL URI |
 | `CLERK_SECRET_KEY` | Yes | Clerk secret key |
-| `CLIENT_URL` | Yes | Frontend origin for CORS (no trailing slash) |
+| `CLIENT_URL` | Yes | Comma-separated frontend origins for CORS (no trailing slashes) |
 | `REDIS_URL` | Recommended | Upstash TLS URL (`rediss://...`) |
-| `ALLOWED_ORIGINS` | No | Extra CORS origins, comma-separated |
+| `ALLOWED_ORIGINS` | No | Extra CORS origins, comma-separated (same format as `CLIENT_URL`) |
 | `NODE_ENV` | Yes | `production` |
 | `PORT` | Auto | Set by Render |
 
@@ -60,7 +60,7 @@ Root directory `backend`, build `npm install && npm run build`, start `npm run d
    - `NEXT_PUBLIC_API_URL` — Render API URL (no trailing slash)
    - `NEXT_PUBLIC_SOCKET_URL` — same as API URL (Socket.io connects directly; Next.js rewrites do not proxy WebSockets)
 4. In Clerk → **Domains**, add your Vercel URL (e.g. `https://your-app.vercel.app`).
-5. On Render, set `CLIENT_URL` to the Vercel URL and redeploy the backend.
+5. On Render, set `CLIENT_URL` to your frontend origins (comma-separated) and redeploy the backend.
 6. Deploy. REST calls use same-origin `/api/*` rewrites; live cursors use `NEXT_PUBLIC_SOCKET_URL`.
 
 Redeploy both services after changing URLs.

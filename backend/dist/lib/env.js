@@ -6,18 +6,22 @@ exports.assertRequiredEnv = assertRequiredEnv;
 function normalizeOrigin(url) {
     return url.replace(/\/$/, '');
 }
+/** Comma-separated origins, e.g. http://localhost:3000,https://app.example.com */
+function parseOrigins(value) {
+    if (!value?.trim())
+        return [];
+    return value
+        .split(',')
+        .map((origin) => normalizeOrigin(origin.trim()))
+        .filter(Boolean);
+}
 function getAllowedOrigins() {
     const origins = new Set();
-    if (process.env.CLIENT_URL) {
-        origins.add(normalizeOrigin(process.env.CLIENT_URL));
+    for (const origin of parseOrigins(process.env.CLIENT_URL)) {
+        origins.add(origin);
     }
-    const extra = process.env.ALLOWED_ORIGINS;
-    if (extra) {
-        for (const origin of extra.split(',')) {
-            const trimmed = normalizeOrigin(origin.trim());
-            if (trimmed)
-                origins.add(trimmed);
-        }
+    for (const origin of parseOrigins(process.env.ALLOWED_ORIGINS)) {
+        origins.add(origin);
     }
     if (process.env.NODE_ENV !== 'production') {
         origins.add('http://localhost:3000');
