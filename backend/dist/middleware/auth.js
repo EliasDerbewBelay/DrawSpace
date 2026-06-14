@@ -15,10 +15,17 @@ async function requireAuth(req, res, next) {
             secretKey: process.env.CLERK_SECRET_KEY,
         });
         req.userId = payload.sub;
-        await (0, users_1.ensureUser)(payload.sub);
-        next();
     }
     catch {
         res.status(401).json({ error: 'Invalid or expired token' });
+        return;
+    }
+    try {
+        await (0, users_1.ensureUser)(req.userId);
+        next();
+    }
+    catch (err) {
+        console.error('ensureUser failed:', err);
+        res.status(503).json({ error: 'Database unavailable' });
     }
 }

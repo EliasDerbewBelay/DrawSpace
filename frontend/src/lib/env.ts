@@ -5,8 +5,10 @@ export function getServerApiUrl(): string {
   return process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? DEV_API
 }
 
-/** Browser REST — same-origin proxy via Next.js rewrites */
+/** Browser REST — direct backend URL when configured (matches Socket.io). */
 export function getClientApiBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '')
+  if (configured) return configured
   if (typeof window !== 'undefined') return ''
   return getServerApiUrl()
 }

@@ -27,9 +27,16 @@ export async function requireAuth(
       secretKey: process.env.CLERK_SECRET_KEY!,
     })
     req.userId = payload.sub
-    await ensureUser(payload.sub)
-    next()
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' })
+    return
+  }
+
+  try {
+    await ensureUser(req.userId)
+    next()
+  } catch (err) {
+    console.error('ensureUser failed:', err)
+    res.status(503).json({ error: 'Database unavailable' })
   }
 }

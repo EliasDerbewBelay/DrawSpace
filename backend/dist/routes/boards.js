@@ -4,6 +4,13 @@ const express_1 = require("express");
 const prisma_1 = require("../lib/prisma");
 const users_1 = require("../lib/users");
 const auth_1 = require("../middleware/auth");
+function logRouteError(label, err) {
+    if (err instanceof Error) {
+        console.error(label, err.message, err.stack);
+        return;
+    }
+    console.error(label, err);
+}
 const router = (0, express_1.Router)();
 router.use(auth_1.requireAuth);
 async function fetchBoardWithRelations(id) {
@@ -27,8 +34,9 @@ router.get('/', async (req, res) => {
         });
         res.json({ boards });
     }
-    catch {
-        res.status(500).json({ error: 'Internal server error' });
+    catch (err) {
+        logRouteError('GET /api/boards failed:', err);
+        res.status(500).json({ error: 'Failed to load boards' });
     }
 });
 // POST /api/boards
@@ -37,28 +45,18 @@ router.post('/', async (req, res) => {
         const name = typeof req.body.name === 'string' && req.body.name.trim()
             ? req.body.name.trim()
             : 'Untitled Board';
-        const board = await prisma_1.prisma.$transaction(async (tx) => {
-            await tx.user.upsert({
-                where: { clerkId: req.userId },
-                create: {
-                    clerkId: req.userId,
-                    name: req.userId,
-                    email: `${req.userId}@clerk.local`,
-                },
-                update: {},
-            });
-            const created = await tx.board.create({
-                data: { name, ownerId: req.userId },
-            });
-            await tx.boardMember.create({
-                data: { boardId: created.id, userId: req.userId, role: 'owner' },
-            });
-            return created;
+        // requireAuth already synced the User row via ensureUser().
+        const board = await prisma_1.prisma.board.create({
+            data: { name, ownerId: req.userId },
+        });
+        await prisma_1.prisma.boardMember.create({
+            data: { boardId: board.id, userId: req.userId, role: 'owner' },
         });
         res.status(201).json({ board });
     }
-    catch {
-        res.status(500).json({ error: 'Internal server error' });
+    catch (err) {
+        logRouteError('POST /api/boards failed:', err);
+        res.status(500).json({ error: 'Failed to create board' });
     }
 });
 function parseSaveElements(raw) {

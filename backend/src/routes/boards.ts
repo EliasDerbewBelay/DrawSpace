@@ -4,6 +4,14 @@ import { prisma } from '../lib/prisma'
 import { ensureUser } from '../lib/users'
 import { requireAuth } from '../middleware/auth'
 
+function logRouteError(label: string, err: unknown): void {
+  if (err instanceof Error) {
+    console.error(label, err.message, err.stack)
+    return
+  }
+  console.error(label, err)
+}
+
 // Derive the transaction client type from the prisma singleton
 type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
 
@@ -44,8 +52,9 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       include: { _count: { select: { members: true } } },
     })
     res.json({ boards })
-  } catch {
-    res.status(500).json({ error: 'Internal server error' })
+  } catch (err) {
+    logRouteError('GET /api/boards failed:', err)
+    res.status(500).json({ error: 'Failed to load boards' })
   }
 })
 
@@ -57,28 +66,19 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
         ? req.body.name.trim()
         : 'Untitled Board'
 
-    const board = await prisma.$transaction(async (tx: TxClient) => {
-      await tx.user.upsert({
-        where: { clerkId: req.userId },
-        create: {
-          clerkId: req.userId,
-          name: req.userId,
-          email: `${req.userId}@clerk.local`,
-        },
-        update: {},
-      })
-      const created = await tx.board.create({
-        data: { name, ownerId: req.userId },
-      })
-      await tx.boardMember.create({
-        data: { boardId: created.id, userId: req.userId, role: 'owner' },
-      })
-      return created
+    // requireAuth already synced the User row via ensureUser().
+    const board = await prisma.board.create({
+      data: { name, ownerId: req.userId },
+    })
+
+    await prisma.boardMember.create({
+      data: { boardId: board.id, userId: req.userId, role: 'owner' },
     })
 
     res.status(201).json({ board })
-  } catch {
-    res.status(500).json({ error: 'Internal server error' })
+  } catch (err) {
+    logRouteError('POST /api/boards failed:', err)
+    res.status(500).json({ error: 'Failed to create board' })
   }
 })
 
